@@ -1,0 +1,25 @@
+﻿{% extends "base.html" %}
+{% block title %}Admin • New Post{% endblock %}
+
+{% block content %}
+<div class="panel">
+    <h2>Create New Post (7-day cycle)</h2>
+
+    <form method="post" action="{{ url_for('admin_new_post_post') }}" enctype="multipart/form-data">
+        <label>Title</label>
+        <input name="title" required>
+
+        <label>Content (HTML allowed)</label>
+        <textarea name="content" rows="12" required></textarea>
+
+        <label>Image upload (optional)</label>
+        <input type="file" name="image" accept="image/*">
+
+        <label>Video upload (optional)</label>
+        <input type="file" name="video" accept="video/*">
+
+        <button class="btn" type="submit">Publish</button>
+        <a class="btn ghost" href="{{ url_for('admin_posts') }}">Cancel</a>
+    </form>
+</div>
+{% endblock %}

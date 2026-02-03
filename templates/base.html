@@ -1,0 +1,99 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}StatsDash{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script defer src="{{ url_for('static', filename='app.js') }}"></script>
+</head>
+
+<body>
+    <!-- Background glow layers -->
+    <div class="bg">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+        <div class="grain"></div>
+    </div>
+
+    <header class="topbar glass">
+        <div class="topbar-inner">
+            <a class="logo" href="{{ url_for('home') }}">
+                <span class="logo-dot"></span>
+                <span>StatsDash</span>
+            </a>
+
+            <div class="topbar-tags">
+                <span class="tag">Current Statistics</span>
+                <span class="tag ghost">Data Analysis</span>
+                <span class="tag ghost">Visual Dashboards</span>
+            </div>
+
+            <nav class="topbar-nav">
+                <a class="navbtn" href="{{ url_for('admin_posts') }}">Admin</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="shell">
+        <!-- LEFT SIDEBAR -->
+        <aside class="sidebar glass">
+            <div class="author">
+                <div class="author-head">
+                    <img class="avatar" src="{{ url_for('static', filename='profile.jpg') }}" alt="Author">
+                    <div class="author-id">
+                        <div class="author-name">Srijani Chakrabarti</div>
+                        <div class="author-sub">M.Sc, Data Science</div>
+                        <div class="author-sub">Macquarie University</div>
+                    </div>
+                </div>
+
+                <div class="author-bio">
+                    Weekly stat storytelling: charts, insights, and clean dashboard UI patterns.
+                </div>
+
+                <div class="chips">
+                    <span class="chip">Analytics</span>
+                    <span class="chip">Experiment design</span>
+                    <span class="chip">Visualization</span>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="mini">
+                    <div class="mini-title">Data blog</div>
+                    <div class="mini-row">
+                        <span class="mini-pill">Short</span>
+                        <span class="mini-pill">Insightful</span>
+                        <span class="mini-pill">Actionable</span>
+                    </div>
+                </div>
+            </div>
+
+            {% block sidebar_extra %}{% endblock %}
+        </aside>
+
+        <!-- MAIN CENTERED CONTENT -->
+        <main class="main">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="flashwrap">
+                {% for category, msg in messages %}
+                <div class="flash glass {{ category }}">{{ msg }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-inner">
+            <span>Explore WHY .... Argue with stats</span>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,123 @@
+﻿{% extends "base.html" %}
+{% block title %}Home • StatsDash{% endblock %}
+
+{% block content %}
+
+<section class="hero glass">
+    <h1>Stats stories that feel like a dashboard</h1>
+    <p>Weekly posts with visual thinking for readers who love analysis.</p>
+
+    <div class="metrics">
+        <div class="metric">
+            <div class="metric-k">Weekly</div>
+            <div class="metric-v">New post cycle</div>
+        </div>
+        <div class="metric">
+            <div class="metric-k">Analytical Thinking</div>
+            <div class="metric-v">Support with Stats</div>
+        </div>
+        <div class="metric">
+            <div class="metric-k">Comment your arguement..</div>
+            <div class="metric-v">Discuss how you feel ..</div>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="section-head">
+        <h2>Today’s post</h2>
+        {% if todays_post %}<span class="badge">LIVE</span>{% endif %}
+    </div>
+
+    {% if todays_post %}
+    <article class="card glass">
+        <div>
+            <h3 class="post-title">{{ todays_post.title }}</h3>
+            <div class="meta">Published: {{ todays_post.publish_date }}</div>
+        </div>
+
+        {% if todays_post.image_path %}
+        <img class="media" src="{{ url_for('uploaded_file', filepath=todays_post.image_path) }}" alt="Post image">
+        {% endif %}
+
+        {% if todays_post.video_path %}
+        <video class="media" controls>
+            <source src="{{ url_for('uploaded_file', filepath=todays_post.video_path) }}">
+        </video>
+        {% endif %}
+
+        <div class="content">{{ todays_post.content | safe }}</div>
+
+        <!-- Comments -->
+        <div class="comments" data-slug="{{ todays_post.slug }}">
+            <div class="comments-head">
+                <div class="comments-title">
+                    Comments <span class="count">({{ todays_comment_count }})</span>
+                </div>
+            </div>
+
+            <form class="comment-form" method="post" action="{{ url_for('add_comment', slug=todays_post.slug) }}">
+                <input name="name" placeholder="Your name" required maxlength="80">
+                <textarea name="text" rows="3" placeholder="Write a comment..." required maxlength="4000"></textarea>
+                <button class="btn" type="submit">Post comment</button>
+            </form>
+
+            <div class="comment-list" id="commentList-{{ todays_post.slug }}">
+                {% for c in todays_comments %}
+                <div class="comment">
+                    <div class="comment-top">
+                        <div class="comment-name">{{ c.name }}</div>
+                        <div class="comment-time">{{ c.created_at.strftime("%Y-%m-%d %H:%M UTC") }}</div>
+                    </div>
+                    <div class="comment-text">{{ c.text }}</div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if todays_comment_count > comments_page_size %}
+            <button class="btn ghost load-more"
+                    data-slug="{{ todays_post.slug }}"
+                    data-offset="{{ todays_comments|length }}">
+                Read more comments…
+            </button>
+            {% endif %}
+        </div>
+    </article>
+    {% else %}
+    <div class="empty glass card">
+        No post published today. 
+    </div>
+    {% endif %}
+</section>
+
+<section class="section">
+    <div class="section-head">
+        <h2>Last 7 days</h2>
+        <button class="btn ghost" id="toggleTrending">Toggle</button>
+    </div>
+
+    <div class="grid" id="postGrid">
+        {% for p in recent_posts %}
+        <a class="glass card-link" href="{{ url_for('post_detail', slug=p.slug) }}">
+            <div class="card-top">
+                <div class="card-title">{{ p.title }}</div>
+                <div class="card-date">{{ p.publish_date }}</div>
+            </div>
+
+            {% if p.image_path %}
+            <img class="thumb" src="{{ url_for('uploaded_file', filepath=p.image_path) }}" alt="thumb">
+            {% endif %}
+
+            <div class="card-snippet">
+                {{ (p.content[:180] ~ ("..." if p.content|length > 180 else "")) }}
+            </div>
+
+            <div class="card-footer">
+                <span class="spark">↗</span> Open article
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+
+{% endblock %}

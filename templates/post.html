@@ -1,0 +1,60 @@
+﻿{% extends "base.html" %}
+{% block title %}{{ post.title }} • StatsDash{% endblock %}
+
+{% block content %}
+<section class="section">
+    <article class="card glass">
+        <div>
+            <h1 class="post-title">{{ post.title }}</h1>
+            <div class="meta">Published: {{ post.publish_date }}</div>
+        </div>
+
+        {% if post.image_path %}
+        <img class="media" src="{{ url_for('uploaded_file', filepath=post.image_path) }}" alt="Post image">
+        {% endif %}
+
+        {% if post.video_path %}
+        <video class="media" controls>
+            <source src="{{ url_for('uploaded_file', filepath=post.video_path) }}">
+        </video>
+        {% endif %}
+
+        <div class="content">{{ post.content | safe }}</div>
+
+        <!-- Comments -->
+        <div class="comments" data-slug="{{ post.slug }}">
+            <div class="comments-head">
+                <div class="comments-title">
+                    Comments <span class="count">({{ comment_count }})</span>
+                </div>
+            </div>
+
+            <form class="comment-form" method="post" action="{{ url_for('add_comment', slug=post.slug) }}">
+                <input name="name" placeholder="Your name" required maxlength="80">
+                <textarea name="text" rows="3" placeholder="Write a comment..." required maxlength="4000"></textarea>
+                <button class="btn" type="submit">Post comment</button>
+            </form>
+
+            <div class="comment-list" id="commentList-{{ post.slug }}">
+                {% for c in initial_comments %}
+                <div class="comment">
+                    <div class="comment-top">
+                        <div class="comment-name">{{ c.name }}</div>
+                        <div class="comment-time">{{ c.created_at.strftime("%Y-%m-%d %H:%M UTC") }}</div>
+                    </div>
+                    <div class="comment-text">{{ c.text }}</div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if comment_count > comments_page_size %}
+            <button class="btn ghost load-more"
+                    data-slug="{{ post.slug }}"
+                    data-offset="{{ initial_comments|length }}">
+                Read more comments…
+            </button>
+            {% endif %}
+        </div>
+    </article>
+</section>
+{% endblock %}
