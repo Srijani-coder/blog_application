@@ -11,6 +11,7 @@ __pycache__/
 # --- Local secrets ---
 .env
 .env.*
+Procfile.*
 
 # --- Flask / runtime ---
 instance/
