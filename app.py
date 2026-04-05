@@ -344,4 +344,4 @@ def save_upload(app: Flask, file_storage, kind: str) -> str:
 
 if __name__ == "__main__":
     app = create_app()
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=8080)
