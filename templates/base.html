@@ -3,13 +3,25 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- 🔥 Theme color for mobile -->
+    <meta name="theme-color" content="#6a00ff">
+
     <title>{% block title %}StatsDash{% endblock %}</title>
+
+    <!-- 🔥 Premium Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <!-- JS -->
     <script defer src="{{ url_for('static', filename='app.js') }}"></script>
 </head>
 
 <body>
-    <!-- Background glow layers -->
+
+    <!-- 🌌 BACKGROUND (Glass + Gradient System) -->
     <div class="bg">
         <div class="orb orb-1"></div>
         <div class="orb orb-2"></div>
@@ -17,31 +29,43 @@
         <div class="grain"></div>
     </div>
 
+    <!-- 🔥 TOP NAVBAR -->
     <header class="topbar glass">
         <div class="topbar-inner">
+
+            <!-- Logo -->
             <a class="logo" href="{{ url_for('home') }}">
                 <span class="logo-dot"></span>
-                <span>StatsDash</span>
+                <span class="logo-text">StatsDash</span>
             </a>
 
+            <!-- Tags -->
             <div class="topbar-tags">
                 <span class="tag">Current Statistics</span>
                 <span class="tag ghost">Data Analysis</span>
                 <span class="tag ghost">Visual Dashboards</span>
             </div>
 
+            <!-- Navigation -->
             <nav class="topbar-nav">
                 <a class="navbtn" href="{{ url_for('admin_posts') }}">Admin</a>
+                <a class="navbtn ghost" href="/admin/analytics">Analytics</a>
             </nav>
+
         </div>
     </header>
 
+    <!-- 🔲 MAIN LAYOUT -->
     <div class="shell">
-        <!-- LEFT SIDEBAR -->
+
+        <!-- 🧊 SIDEBAR -->
         <aside class="sidebar glass">
+
             <div class="author">
+
                 <div class="author-head">
                     <img class="avatar" src="{{ url_for('static', filename='profile.jpg') }}" alt="Author">
+
                     <div class="author-id">
                         <div class="author-name">Srijani Chakrabarti</div>
                         <div class="author-sub">M.Sc, Data Science</div>
@@ -53,6 +77,7 @@
                     Weekly stat storytelling: charts, insights, and clean story of recognizing patterns.
                 </div>
 
+                <!-- 🔥 Skill chips -->
                 <div class="chips">
                     <span class="chip">Analytics</span>
                     <span class="chip">Experiment design</span>
@@ -61,6 +86,7 @@
 
                 <div class="divider"></div>
 
+                <!-- Mini section -->
                 <div class="mini">
                     <div class="mini-title">Data blog</div>
                     <div class="mini-row">
@@ -69,13 +95,17 @@
                         <span class="mini-pill">Actionable</span>
                     </div>
                 </div>
+
             </div>
 
             {% block sidebar_extra %}{% endblock %}
+
         </aside>
 
-        <!-- MAIN CENTERED CONTENT -->
+        <!-- 🧠 MAIN CONTENT -->
         <main class="main">
+
+            <!-- Flash Messages -->
             {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
             <div class="flashwrap">
@@ -87,13 +117,17 @@
             {% endwith %}
 
             {% block content %}{% endblock %}
+
         </main>
+
     </div>
 
+    <!-- 🔻 FOOTER -->
     <footer class="footer">
         <div class="footer-inner">
             <span>Explore WHY .... Argue with stats</span>
         </div>
     </footer>
+
 </body>
 </html>

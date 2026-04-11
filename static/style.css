@@ -1,16 +1,19 @@
 ﻿:root {
-    --bg: #070A12;
+    --bg: #06070F;
     --panel: rgba(255,255,255,.06);
-    --panel2: rgba(255,255,255,.045);
-    --stroke: rgba(255,255,255,.10);
-    --stroke2: rgba(255,255,255,.14);
-    --text: #EAF0FF;
-    --muted: #A9B7D6;
+    --panel2: rgba(255,255,255,.035);
+    --stroke: rgba(255,255,255,.12);
+    --stroke2: rgba(255,255,255,.18);
+    --text: #F3F0FF;
+    --muted: #AFA9D6;
+    /* 💜 PURPLE SYSTEM */
     --brand: #7C5CFF;
+    --brand2: #A78BFA;
+    --brand-glow: rgba(124,92,255,.45);
     --mint: #2EE9A6;
-    --shadow: 0 22px 70px rgba(0,0,0,.55);
-    --radius: 18px;
-    --blur: 18px;
+    --shadow: 0 30px 80px rgba(0,0,0,.65);
+    --radius: 20px;
+    --blur: 22px;
 }
 
 * {
@@ -39,32 +42,32 @@ body {
 .orb {
     position: absolute;
     border-radius: 999px;
-    filter: blur(28px);
-    opacity: .85;
+    filter: blur(60px);
+    opacity: .9;
 }
 
 .orb-1 {
-    width: 620px;
-    height: 520px;
+    width: 700px;
+    height: 600px;
     left: -120px;
     top: -120px;
-    background: radial-gradient(circle at 30% 30%, rgba(124,92,255,.55), transparent 60%);
+    background: radial-gradient(circle at 30% 30%, rgba(124,92,255,.7), transparent 60%);
 }
 
 .orb-2 {
-    width: 680px;
-    height: 560px;
+    width: 700px;
+    height: 600px;
     right: -180px;
-    top: 60px;
-    background: radial-gradient(circle at 30% 30%, rgba(46,233,166,.35), transparent 62%);
+    top: 80px;
+    background: radial-gradient(circle at 30% 30%, rgba(167,139,250,.45), transparent 65%);
 }
 
 .orb-3 {
-    width: 640px;
-    height: 520px;
+    width: 700px;
+    height: 600px;
     left: 20%;
-    bottom: -240px;
-    background: radial-gradient(circle at 30% 30%, rgba(124,92,255,.25), transparent 62%);
+    bottom: -260px;
+    background: radial-gradient(circle at 30% 30%, rgba(124,92,255,.35), transparent 65%);
 }
 
 .grain {
@@ -76,16 +79,22 @@ body {
 }
 
 /* ---------- Glass utility ---------- */
+
 .glass {
-    background: linear-gradient(180deg, var(--panel), var(--panel2));
-    border: 1px solid var(--stroke);
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(var(--blur));
-    -webkit-backdrop-filter: blur(var(--blur));
+    background: linear-gradient( 145deg, rgba(255,255,255,.08), rgba(255,255,255,.02) );
+    border: 1px solid rgba(255,255,255,.12);
+    backdrop-filter: blur(var(--blur)) saturate(140%);
+    -webkit-backdrop-filter: blur(var(--blur)) saturate(140%);
+    box-shadow: inset 0 1px 1px rgba(255,255,255,.15), 0 30px 80px rgba(0,0,0,.65);
 }
 
+
 /* ---------- Topbar ---------- */
+
+
 .topbar {
+    background: rgba(10, 10, 25, 0.6);
+    backdrop-filter: blur(20px);
     position: sticky;
     top: 0;
     z-index: 50;
@@ -94,6 +103,16 @@ body {
     border-top: none;
     border-radius: 0;
 }
+
+.navbtn {
+    transition: all .25s ease;
+}
+
+    .navbtn:hover {
+        background: rgba(124,92,255,.25);
+        box-shadow: 0 0 20px var(--brand-glow);
+        transform: translateY(-1px);
+    }
 
 .topbar-inner {
     max-width: 1240px;
@@ -145,17 +164,6 @@ body {
 
 .topbar-nav {
     margin-left: auto;
-}
-
-.navbtn {
-    text-decoration: none;
-    color: var(--text);
-    font-weight: 800;
-    font-size: 13px;
-    padding: 9px 12px;
-    border-radius: 14px;
-    border: 1px solid rgba(124,92,255,.30);
-    background: rgba(124,92,255,.12);
 }
 
 /* ---------- Layout: left sidebar + centered main ---------- */
@@ -360,14 +368,20 @@ body {
 
 /* ---------- Buttons ---------- */
 .btn {
-    border: 1px solid rgba(124,92,255,.28);
-    background: rgba(124,92,255,.12);
-    color: var(--text);
-    padding: 10px 12px;
+    border: none;
+    background: linear-gradient(45deg, #7C5CFF, #A78BFA);
+    color: white;
+    padding: 10px 14px;
     border-radius: 14px;
     cursor: pointer;
     font-weight: 900;
+    transition: all .25s ease;
 }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(124,92,255,.5);
+    }
 
     .btn.ghost {
         border: 1px solid rgba(255,255,255,.10);
@@ -412,12 +426,27 @@ body {
     padding: 14px;
     border-radius: var(--radius);
     transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+    position: relative;
+    overflow: hidden;
 }
+    .card-link::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient( 120deg, transparent, rgba(255,255,255,.25), transparent );
+        opacity: 0;
+        transition: .6s;
+    }
+
+    .card-link:hover::before {
+        opacity: 1;
+        transform: translateX(100%);
+    }
 
     .card-link:hover {
-        transform: translateY(-2px);
-        border-color: rgba(124,92,255,.32);
-        box-shadow: 0 30px 90px rgba(0,0,0,.60);
+        transform: translateY(-6px) scale(1.02);
+        border-color: rgba(124,92,255,.4);
+        box-shadow: 0 40px 120px rgba(0,0,0,.8), 0 0 40px rgba(124,92,255,.15);
     }
 
 .card-top {
@@ -437,11 +466,16 @@ body {
 
 .thumb {
     width: 100%;
-    height: 155px;
+    height: 170px;
     object-fit: cover;
     border-radius: 18px;
-    border: 1px solid rgba(255,255,255,.10);
+    border: 1px solid rgba(255,255,255,.12);
     margin-top: 10px;
+    transition: transform .4s ease;
+}
+
+.card-link:hover .thumb {
+    transform: scale(1.05);
 }
 
 .card-snippet {
@@ -471,13 +505,23 @@ body {
 }
 
 /* ---------- Comments ---------- */
-.comments {
-    margin-top: 16px;
-    padding-top: 12px;
-    border-top: 1px solid rgba(255,255,255,.08);
+.comment {
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.04);
+    padding: 12px;
+    transition: all 0.25s ease;
+    backdrop-filter: blur(12px);
 }
 
-.comments-title {
+    .comment:hover {
+        background: rgba(255,255,255,.06);
+        border-color: rgba(124,92,255,.25);
+        box-shadow: 0 10px 30px rgba(124,92,255,.08);
+        transform: translateY(-2px);
+    }
+
+ .comments-title {
     font-weight: 950;
 }
 
@@ -490,6 +534,11 @@ body {
     margin-top: 10px;
     display: grid;
     gap: 10px;
+}
+
+input:focus, textarea:focus {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 2px rgba(124,92,255,.2);
 }
 
 input, textarea {
@@ -510,13 +559,6 @@ textarea {
     margin-top: 12px;
     display: grid;
     gap: 10px;
-}
-
-.comment {
-    border-radius: 16px;
-    border: 1px solid rgba(255,255,255,.09);
-    background: rgba(255,255,255,.02);
-    padding: 10px 12px;
 }
 
 .comment-top {
@@ -588,4 +630,121 @@ textarea {
 body.trending .card-link:hover {
     border-color: rgba(46,233,166,.28);
     box-shadow: 0 30px 95px rgba(46,233,166,.08), 0 30px 90px rgba(0,0,0,.60);
+}
+
+.logo-text {
+    background: linear-gradient(90deg, #7C5CFF, #A78BFA);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+* {
+    box-sizing: border-box;
+    transition: background 0.2s ease, border 0.2s ease;
+}
+
+body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at 50% 20%, rgba(124,92,255,.08), transparent 60%);
+    pointer-events: none;
+}
+
+a {
+    transition: all 0.2s ease;
+}
+
+.pentagon-section {
+    margin-top: 30px;
+}
+
+.pentagon-scroll {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding: 20px 10px;
+    scroll-snap-type: x mandatory;
+}
+
+/* Scroll snap */
+.pentagon-card {
+    min-width: 220px;
+    text-decoration: none;
+    color: var(--text);
+    scroll-snap-align: start;
+}
+
+/* Pentagon shape */
+.pentagon-shape {
+    width: 220px;
+    height: 220px;
+    position: relative;
+    clip-path: polygon( 50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38% );
+    overflow: hidden;
+    border: 1px solid rgba(124,92,255,.3);
+    background: linear-gradient(145deg, rgba(124,92,255,.2), rgba(255,255,255,.05));
+    backdrop-filter: blur(14px);
+    transition: all .3s ease;
+}
+
+    /* Image inside */
+    .pentagon-shape img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+/* Hover effect */
+.pentagon-card:hover .pentagon-shape {
+    transform: translateY(-8px) scale(1.05);
+    box-shadow: 0 20px 60px rgba(124,92,255,.3);
+}
+
+/* Content */
+.pentagon-content {
+    margin-top: 10px;
+    text-align: center;
+}
+
+.pentagon-title {
+    font-weight: 900;
+    font-size: 14px;
+}
+
+.pentagon-date {
+    font-size: 11px;
+    color: var(--muted);
+}
+
+/* Chrome, Edge, Safari */
+::-webkit-scrollbar {
+    height: 10px;
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255,255,255,.03);
+    border-radius: 20px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient( 135deg, rgba(124,92,255,.8), rgba(167,139,250,.6), rgba(46,233,166,.4) );
+    border-radius: 20px;
+    border: 2px solid rgba(255,255,255,.08);
+}
+
+    /* Hover glow */
+    ::-webkit-scrollbar-thumb:hover {
+        box-shadow: 0 0 12px rgba(124,92,255,.6);
+    }
+
+/* Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #7C5CFF rgba(255,255,255,.05);
 }

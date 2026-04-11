@@ -120,4 +120,29 @@
     </div>
 </section>
 
+<section class="section pentagon-section">
+    <div class="section-head">
+        <h2>Explore Stories</h2>
+    </div>
+
+    <div class="pentagon-scroll">
+        {% for p in recent_posts[:8] %}
+        <a class="pentagon-card" href="{{ url_for('post_detail', slug=p.slug) }}">
+
+            <div class="pentagon-shape">
+                {% if p.image_url %}
+                <img src="{{ p.image_url }}" alt="thumb">
+                {% endif %}
+            </div>
+
+            <div class="pentagon-content">
+                <div class="pentagon-title">{{ p.title }}</div>
+                <div class="pentagon-date">{{ p.publish_date }}</div>
+            </div>
+
+        </a>
+        {% endfor %}
+    </div>
+</section>
+
 {% endblock %}
