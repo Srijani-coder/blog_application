@@ -2,23 +2,74 @@
 {% block title %}Admin • Posts{% endblock %}
 
 {% block content %}
+
 <div class="admin-top">
     <h2>Admin Dashboard</h2>
+
     <div class="admin-actions">
-        <a class="btn" href="{{ url_for('admin_new_post') }}">New Post</a>
+        <!-- ✅ FIXED ROUTE -->
+        <a class="btn" href="{{ url_for('new_post') }}">+ New Post</a>
+
+        <!-- ✅ ADDED ANALYTICS BUTTON -->
+        <a class="btn ghost" href="{{ url_for('analytics_dashboard') }}">Analytics</a>
+
         <a class="btn ghost" href="{{ url_for('admin_logout') }}">Logout</a>
     </div>
 </div>
 
-<div class="panel">
-    <h3>All posts</h3>
+
+<div class="panel glass">
+    <h3>All Posts</h3>
+
+    {% if posts %}
     <ul class="list">
+
         {% for p in posts %}
-        <li>
-            <strong>{{ p.publish_date }}</strong> {{ p.title }}
-            <span class="muted">({{ p.slug }})</span>
+        <li class="post-row">
+
+            <div class="post-main">
+                <div class="post-title">
+                    {{ p.title }}
+                </div>
+
+                <div class="post-meta">
+                    <span class="badge">{{ p.publish_date }}</span>
+                    <span class="muted">{{ p.slug }}</span>
+                </div>
+            </div>
+
+            <div class="post-actions">
+
+                <!-- VIEW -->
+                <a class="btn small"
+                   href="{{ url_for('post_detail', slug=p.slug) }}"
+                   target="_blank">
+                    View
+                </a>
+
+                <!-- DOWNLOAD -->
+                <a class="btn ghost small"
+                   href="{{ url_for('download_post', id=p.id) }}">
+                    Backup
+                </a>
+
+                <form method="POST" action="{{ url_for('delete_post', id=p.id) }}" style="display:inline;">
+                    <button class="btn danger" onclick="return confirm('Delete this post?')">
+                        🗑 Delete
+                    </button>
+                </form>
+            </div>
+
         </li>
         {% endfor %}
+
     </ul>
+
+    {% else %}
+    <div class="empty">
+        No posts created yet.
+    </div>
+    {% endif %}
 </div>
+
 {% endblock %}

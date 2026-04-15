@@ -2,24 +2,39 @@
 {% block title %}Admin • New Post{% endblock %}
 
 {% block content %}
-<div class="panel">
+<div class="panel glass">
+
     <h2>Create New Post (7-day cycle)</h2>
 
-    <form method="post" action="{{ url_for('admin_new_post_post') }}" enctype="multipart/form-data">
+    <!-- FIXED: correct route name -->
+    <form method="post" action="{{ url_for('new_post') }}" enctype="multipart/form-data">
+
         <label>Title</label>
-        <input name="title" required>
+        <input name="title" required placeholder="Enter post title">
 
         <label>Content (HTML allowed)</label>
-        <textarea name="content" rows="12" required></textarea>
+        <textarea name="content" rows="12" required placeholder="Write your post..."></textarea>
 
+        <!-- DOC upload -->
+        <label>Upload Document (.docx / .rtf / .txt)</label>
+        <input type="file" name="docfile" accept=".docx,.rtf,.txt">
+
+        <!-- IMAGE -->
         <label>Image upload (optional)</label>
         <input type="file" name="image" accept="image/*">
 
+        <!-- VIDEO (UI ready, backend safe fallback) -->
         <label>Video upload (optional)</label>
         <input type="file" name="video" accept="video/*">
 
-        <button class="btn" type="submit">Publish</button>
-        <a class="btn ghost" href="{{ url_for('admin_posts') }}">Cancel</a>
+        <div style="margin-top: 16px; display:flex; gap:10px;">
+            <button class="btn" type="submit">Publish</button>
+
+            <!-- FIXED: correct route -->
+            <a class="btn ghost" href="{{ url_for('admin_dashboard') }}">Cancel</a>
+        </div>
+
     </form>
+
 </div>
 {% endblock %}

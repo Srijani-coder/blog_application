@@ -1,0 +1,75 @@
+﻿{% extends "base.html" %}
+{% block title %}Admin • Analytics{% endblock %}
+
+{% block content %}
+
+<div class="admin-top">
+    <h2>Analytics Dashboard</h2>
+    <div class="admin-actions">
+        <a class="btn ghost" href="{{ url_for('admin_dashboard') }}">Back</a>
+        <a class="btn ghost" href="{{ url_for('admin_logout') }}">Logout</a>
+    </div>
+</div>
+
+<!-- SUMMARY CARDS -->
+<div class="analytics-cards">
+
+    {% set total_views = data | sum(attribute=1) %}
+    {% set total_likes = data | sum(attribute=2) %}
+    {% set total_shares = data | sum(attribute=3) %}
+
+    <div class="card glass stat">
+        <div class="stat-title">Total Views</div>
+        <div class="stat-value">{{ total_views }}</div>
+    </div>
+
+    <div class="card glass stat">
+        <div class="stat-title">Total Likes</div>
+        <div class="stat-value">{{ total_likes }}</div>
+    </div>
+
+    <div class="card glass stat">
+        <div class="stat-title">Total Shares</div>
+        <div class="stat-value">{{ total_shares }}</div>
+    </div>
+
+</div>
+
+<!-- TABLE -->
+<div class="panel glass">
+    <h3>Post Performance</h3>
+
+    <div class="table-wrap">
+        <table class="analytics-table">
+            <thead>
+                <tr>
+                    <th>Post</th>
+                    <th>Views</th>
+                    <th>Likes</th>
+                    <th>Shares</th>
+                    <th>Avg Time (sec)</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for row in data %}
+                <tr>
+                    <td>{{ row[0] }}</td>
+                    <td>{{ row[1] }}</td>
+                    <td>{{ row[2] }}</td>
+                    <td>{{ row[3] }}</td>
+                    <td>
+                        {% if row[4] %}
+                        {{ "%.1f"|format(row[4]) }}
+                        {% else %}
+                        0
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

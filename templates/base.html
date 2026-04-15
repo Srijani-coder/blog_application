@@ -4,24 +4,24 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <!-- 🔥 Theme color for mobile -->
-    <meta name="theme-color" content="#6a00ff">
+    <title>{% block title %}JuicyStatControversy{% endblock %}</title>
 
-    <title>{% block title %}StatsDash{% endblock %}</title>
-
-    <!-- 🔥 Premium Font -->
+    <!-- Google Font (clean + modern + unique) -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 
-    <!-- CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
-    <!-- JS -->
     <script defer src="{{ url_for('static', filename='app.js') }}"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
 </head>
 
 <body>
 
-    <!-- 🌌 BACKGROUND (Glass + Gradient System) -->
+    <!-- ================= BACKGROUND ================= -->
     <div class="bg">
         <div class="orb orb-1"></div>
         <div class="orb orb-2"></div>
@@ -29,55 +29,67 @@
         <div class="grain"></div>
     </div>
 
-    <!-- 🔥 TOP NAVBAR -->
+    <!-- ================= TOPBAR ================= -->
     <header class="topbar glass">
         <div class="topbar-inner">
 
-            <!-- Logo -->
+            <!-- LOGO -->
             <a class="logo" href="{{ url_for('home') }}">
                 <span class="logo-dot"></span>
-                <span class="logo-text">StatsDash</span>
+                <span>JuicyStatControversy</span>
             </a>
 
-            <!-- Tags -->
+            <!-- TAGS -->
             <div class="topbar-tags">
                 <span class="tag">Current Statistics</span>
                 <span class="tag ghost">Data Analysis</span>
                 <span class="tag ghost">Visual Dashboards</span>
             </div>
 
-            <!-- Navigation -->
+            <!-- NAVIGATION -->
             <nav class="topbar-nav">
-                <a class="navbtn" href="{{ url_for('admin_posts') }}">Admin</a>
-                <a class="navbtn ghost" href="/admin/analytics">Analytics</a>
+
+                <a class="navbtn" href="{{ url_for('home') }}">Home</a>
+
+                <a class="navbtn" href="{{ url_for('posts') }}">Posts</a>
+
+                {% if current_user.is_authenticated %}
+                <a class="navbtn" href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+                <a class="navbtn" href="{{ url_for('analytics_dashboard') }}">Analytics</a>
+                <a class="navbtn logout" href="{{ url_for('admin_logout') }}">Logout</a>
+                {% else %}
+                <a class="navbtn" href="{{ url_for('admin_login') }}">Admin</a>
+                {% endif %}
+
             </nav>
 
         </div>
     </header>
 
-    <!-- 🔲 MAIN LAYOUT -->
+    <!-- ================= MAIN LAYOUT ================= -->
     <div class="shell">
 
-        <!-- 🧊 SIDEBAR -->
+        <!-- ========== SIDEBAR ========== -->
         <aside class="sidebar glass">
 
             <div class="author">
 
                 <div class="author-head">
-                    <img class="avatar" src="{{ url_for('static', filename='profile.jpg') }}" alt="Author">
+                    <img class="avatar"
+                         src="{{ url_for('static', filename='profile.jpg') }}"
+                         alt="Author">
 
                     <div class="author-id">
                         <div class="author-name">Srijani Chakrabarti</div>
-                        <div class="author-sub">M.Sc, Data Science</div>
-                        <div class="author-sub">Macquarie University</div>
+                        <div class="author-sub">M.S, Data Science</div>
+                        <div class="author-sub">Macquarie University , Sydney , New South Wales , Australia</div>
                     </div>
                 </div>
 
                 <div class="author-bio">
-                    Weekly stat storytelling: charts, insights, and clean story of recognizing patterns.
+                    Weekly stat storytelling: charts, insights, and clean dashboard UI patterns.
                 </div>
 
-                <!-- 🔥 Skill chips -->
                 <div class="chips">
                     <span class="chip">Analytics</span>
                     <span class="chip">Experiment design</span>
@@ -86,7 +98,7 @@
 
                 <div class="divider"></div>
 
-                <!-- Mini section -->
+                <!-- ===== MINI INFO ===== -->
                 <div class="mini">
                     <div class="mini-title">Data blog</div>
                     <div class="mini-row">
@@ -96,16 +108,30 @@
                     </div>
                 </div>
 
+                <!-- ===== QUICK LINKS ===== -->
+                <div class="divider"></div>
+
+                <div class="mini">
+                    <div class="mini-title">Explore</div>
+                    <div class="mini-row">
+                        <a href="{{ url_for('posts') }}" class="mini-pill clickable">All Posts</a>
+
+                        {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('analytics_dashboard') }}" class="mini-pill clickable">Analytics</a>
+                        {% endif %}
+                    </div>
+                </div>
+
             </div>
 
             {% block sidebar_extra %}{% endblock %}
 
         </aside>
 
-        <!-- 🧠 MAIN CONTENT -->
+        <!-- ========== MAIN CONTENT ========== -->
         <main class="main">
 
-            <!-- Flash Messages -->
+            <!-- FLASH MESSAGES -->
             {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
             <div class="flashwrap">
@@ -122,10 +148,10 @@
 
     </div>
 
-    <!-- 🔻 FOOTER -->
+    <!-- ================= FOOTER ================= -->
     <footer class="footer">
         <div class="footer-inner">
-            <span>Explore WHY .... Argue with stats</span>
+            <span>Explore WHY • Argue with Stats • Think with Data</span>
         </div>
     </footer>
 

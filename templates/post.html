@@ -4,49 +4,83 @@
 {% block content %}
 <section class="section">
     <article class="card glass">
+
+        <!-- TITLE -->
         <div>
             <h1 class="post-title">{{ post.title }}</h1>
             <div class="meta">Published: {{ post.publish_date }}</div>
         </div>
 
+        <!-- IMAGE (FIXED: Cloudinary URL direct) -->
         {% if post.image_path %}
-        <img class="media" src="{{ url_for('uploaded_file', filepath=post.image_path) }}" alt="Post image">
+        <img class="media" src="{{ post.image_path }}" alt="Post image">
         {% endif %}
 
+        <!-- VIDEO (optional future support) -->
         {% if post.video_path %}
         <video class="media" controls>
-            <source src="{{ url_for('uploaded_file', filepath=post.video_path) }}">
+            <source src="{{ post.video_path }}">
         </video>
         {% endif %}
 
+        <!-- CONTENT -->
         <div class="content">{{ post.content | safe }}</div>
 
-        <!-- Comments -->
+        <!-- ========================= -->
+        <!-- NEW: POST ACTIONS (LIKE / SHARE) -->
+        <!-- ========================= -->
+        <div class="post-actions">
+            <button id="likeBtn" class="btn">
+                👍 Like (<span id="likeCount">0</span>)
+            </button>
+
+            <button class="btn share-btn" data-platform="twitter">
+                🐦 Share
+            </button>
+
+            <button class="btn share-btn" data-platform="linkedin">
+                💼 Share
+            </button>
+
+            <div class="share-count">
+                Shares: <span id="shareCount">0</span>
+            </div>
+        </div>
+
+        <!-- ========================= -->
+        <!-- COMMENTS -->
+        <!-- ========================= -->
         <div class="comments" data-slug="{{ post.slug }}">
+
             <div class="comments-head">
                 <div class="comments-title">
                     Comments <span class="count">({{ comment_count }})</span>
                 </div>
             </div>
 
+            <!-- COMMENT FORM -->
             <form class="comment-form" method="post" action="{{ url_for('add_comment', slug=post.slug) }}">
                 <input name="name" placeholder="Your name" required maxlength="80">
                 <textarea name="text" rows="3" placeholder="Write a comment..." required maxlength="4000"></textarea>
                 <button class="btn" type="submit">Post comment</button>
             </form>
 
+            <!-- COMMENT LIST -->
             <div class="comment-list" id="commentList-{{ post.slug }}">
                 {% for c in initial_comments %}
                 <div class="comment">
                     <div class="comment-top">
                         <div class="comment-name">{{ c.name }}</div>
-                        <div class="comment-time">{{ c.created_at.strftime("%Y-%m-%d %H:%M UTC") }}</div>
+                        <div class="comment-time">
+                            {{ c.created_at.strftime("%Y-%m-%d %H:%M UTC") }}
+                        </div>
                     </div>
                     <div class="comment-text">{{ c.text }}</div>
                 </div>
                 {% endfor %}
             </div>
 
+            <!-- LOAD MORE -->
             {% if comment_count > comments_page_size %}
             <button class="btn ghost load-more"
                     data-slug="{{ post.slug }}"
@@ -54,7 +88,9 @@
                 Read more comments…
             </button>
             {% endif %}
+
         </div>
+
     </article>
 </section>
 {% endblock %}

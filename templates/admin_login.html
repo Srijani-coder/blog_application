@@ -2,9 +2,10 @@
 {% block title %}Admin Login{% endblock %}
 
 {% block content %}
-<div class="panel">
+<div class="panel glass">
     <h2>Admin Login</h2>
-    <form method="post" action="{{ url_for('admin_login_post') }}">
+
+    <form method="post" action="{{ url_for('admin_login') }}">
         <label>Username</label>
         <input name="username" required>
 

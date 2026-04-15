@@ -1,37 +1,43 @@
-import os
+﻿import os
 import re
 from datetime import date, datetime, timedelta
-from pathlib import Path
-
 from dotenv import load_dotenv
+
 load_dotenv()
 
 from flask import (
     Flask, render_template, request, redirect, url_for,
-    flash, send_from_directory, abort, jsonify
+    flash, jsonify, send_file
 )
 from flask_login import (
-    LoginManager, login_user, login_required, logout_user, current_user
+    LoginManager, login_user, login_required, logout_user
 )
 from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.utils import secure_filename
+
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func
+
+import cloudinary
+import cloudinary.uploader
+
+from docx import Document
+from striprtf.striprtf import rtf_to_text
 
 from config import Config
-from models import db, User, Post, Comment
+from models import db, User, Post, Comment, PostAnalytics, ViewSession, ShareEvent
 
 
 COMMENTS_PAGE_SIZE = 10
+MAX_DB_MB = 1000  # 1GB
+
+
+# ✅ CLOUDINARY (uses CLOUDINARY_URL automatically)
+cloudinary.config(secure=True)
 
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
-
-    # Ensure folders exist
-    Path("instance").mkdir(exist_ok=True)
-    Path(app.config["UPLOAD_FOLDER"]).mkdir(exist_ok=True)
-    Path(os.path.join(app.config["UPLOAD_FOLDER"], "images")).mkdir(exist_ok=True)
-    Path(os.path.join(app.config["UPLOAD_FOLDER"], "videos")).mkdir(exist_ok=True)
 
     db.init_app(app)
 
@@ -45,11 +51,11 @@ def create_app():
 
     with app.app_context():
         db.create_all()
-        ensure_default_admin(app)
+        ensure_default_admin()
 
-    # ---------------------------
-    # Public routes
-    # ---------------------------
+    # =========================
+    # HOME
+    # =========================
     @app.get("/")
     def home():
         today = date.today()
@@ -66,13 +72,14 @@ def create_app():
             Post.query
             .filter(Post.publish_date >= seven_days_ago)
             .filter(Post.publish_date != today)
-            .order_by(Post.publish_date.desc(), Post.created_at.desc())
+            .order_by(Post.publish_date.desc())
+            .limit(6)
             .all()
         )
 
-        # For today's post: initial comments + count for "read more"
         todays_comments = []
         todays_comment_count = 0
+
         if todays_post:
             todays_comment_count = todays_post.comments.count()
             todays_comments = (
@@ -91,11 +98,23 @@ def create_app():
             comments_page_size=COMMENTS_PAGE_SIZE
         )
 
+    # =========================
+    # POSTS
+    # =========================
+    @app.get("/posts")
+    def posts():
+        posts = Post.query.order_by(Post.publish_date.desc()).all()
+        return render_template("posts.html", posts=posts)
+
+    # =========================
+    # POST DETAIL
+    # =========================
     @app.get("/post/<slug>")
-    def post_detail(slug: str):
+    def post_detail(slug):
         post = Post.query.filter_by(slug=slug).first_or_404()
 
         comment_count = post.comments.count()
+
         initial_comments = (
             post.comments
             .order_by(Comment.created_at.desc())
@@ -111,237 +130,301 @@ def create_app():
             comments_page_size=COMMENTS_PAGE_SIZE
         )
 
-    # Create a comment (public)
+    # =========================
+    # ADD COMMENT
+    # =========================
     @app.post("/post/<slug>/comment")
-    def add_comment(slug: str):
+    def add_comment(slug):
         post = Post.query.filter_by(slug=slug).first_or_404()
 
-        name = (request.form.get("name") or "").strip()
-        text = (request.form.get("text") or "").strip()
+        name = request.form.get("name", "").strip()
+        text = request.form.get("text", "").strip()
 
         if not name or not text:
-            flash("Please enter your name and a comment.", "error")
-            # Return to same page (home uses anchor, post uses same slug page)
-            ref = request.referrer or url_for("post_detail", slug=slug)
-            return redirect(ref)
-
-        # light spam guard
-        if len(name) > 80 or len(text) > 4000:
-            flash("Comment too long.", "error")
-            ref = request.referrer or url_for("post_detail", slug=slug)
-            return redirect(ref)
+            flash("Fill all fields", "error")
+            return redirect(url_for("post_detail", slug=slug))
 
         db.session.add(Comment(post_id=post.id, name=name, text=text))
         db.session.commit()
 
-        flash("Comment posted!", "success")
-        ref = request.referrer or url_for("post_detail", slug=slug)
-        return redirect(ref)
+        flash("Comment added!", "success")
+        return redirect(url_for("post_detail", slug=slug))
 
-    # Load comments in batches (AJAX)
-    @app.get("/post/<slug>/comments")
-    def get_comments(slug: str):
-        post = Post.query.filter_by(slug=slug).first_or_404()
-
-        try:
-            offset = int(request.args.get("offset", "0"))
-        except ValueError:
-            offset = 0
-
-        limit = COMMENTS_PAGE_SIZE
-
-        total = post.comments.count()
-        rows = (
-            post.comments
-            .order_by(Comment.created_at.desc())
-            .offset(offset)
-            .limit(limit)
-            .all()
-        )
-
-        data = [{
-            "id": c.id,
-            "name": c.name,
-            "text": c.text,
-            "created_at": c.created_at.strftime("%Y-%m-%d %H:%M UTC")
-        } for c in rows]
-
-        has_more = (offset + len(rows)) < total
-
-        return jsonify({
-            "comments": data,
-            "next_offset": offset + len(rows),
-            "has_more": has_more,
-            "total": total
-        })
-
-    # Serve uploaded files
-    @app.get("/uploads/<path:filepath>")
-    def uploaded_file(filepath: str):
-        safe_root = os.path.abspath(app.config["UPLOAD_FOLDER"])
-        requested = os.path.abspath(os.path.join(safe_root, filepath))
-        if not requested.startswith(safe_root):
-            abort(403)
-        return send_from_directory(safe_root, filepath)
-
-    # ---------------------------
-    # Admin routes (separate URL)
-    # ---------------------------
-    @app.get("/admin/login")
+    # =========================
+    # ADMIN LOGIN
+    # =========================
+    @app.route("/admin/login", methods=["GET", "POST"])
     def admin_login():
-        if current_user.is_authenticated:
-            return redirect(url_for("admin_posts"))
+        if request.method == "POST":
+            user = User.query.filter_by(username=request.form["username"]).first()
+
+            if user and check_password_hash(user.password_hash, request.form["password"]):
+                login_user(user)
+                return redirect(url_for("admin_dashboard"))
+
+            flash("Invalid credentials", "error")
+
         return render_template("admin_login.html")
-
-    @app.post("/admin/login")
-    def admin_login_post():
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "")
-
-        user = User.query.filter_by(username=username).first()
-        if not user or not check_password_hash(user.password_hash, password):
-            flash("Invalid credentials.", "error")
-            return redirect(url_for("admin_login"))
-
-        login_user(user)
-        return redirect(url_for("admin_posts"))
 
     @app.get("/admin/logout")
     @login_required
     def admin_logout():
         logout_user()
+        flash("Logged out", "success")
         return redirect(url_for("home"))
 
+    # =========================
+    # ADMIN DASHBOARD
+    # =========================
     @app.get("/admin")
     @login_required
-    def admin_posts():
-        posts = Post.query.order_by(Post.publish_date.desc(), Post.created_at.desc()).all()
+    def admin_dashboard():
+        posts = Post.query.order_by(Post.created_at.desc()).all()
         return render_template("admin_posts.html", posts=posts)
 
-    @app.get("/admin/new")
+    # =========================
+    # CREATE POST (🔥 UPGRADED)
+    # =========================
+    @app.route("/admin/new", methods=["GET", "POST"])
     @login_required
-    def admin_new_post():
+    def new_post():
+        if request.method == "POST":
+
+            title = request.form["title"]
+            content = request.form.get("content", "")
+
+            # DOC upload
+            docfile = request.files.get("docfile")
+            if docfile and docfile.filename:
+                content = extract_text(docfile)
+
+            image_url = None
+            video_url = None
+
+            # IMAGE upload (optimized)
+            image = request.files.get("image")
+            if image and image.filename:
+                res = cloudinary.uploader.upload(
+                    image,
+                    folder="statsdash/images",
+                    resource_type="image",
+                    transformation=[
+                        {"quality": "auto"},
+                        {"fetch_format": "auto"}
+                    ]
+                )
+                image_url = res["secure_url"]
+
+            # VIDEO upload
+            video = request.files.get("video")
+            if video and video.filename:
+                res = cloudinary.uploader.upload(
+                    video,
+                    folder="statsdash/videos",
+                    resource_type="video"
+                )
+                video_url = res["secure_url"]
+
+            slug = make_unique_slug(title)
+
+            post = Post(
+                title=title,
+                slug=slug,
+                content=content,
+                image_path=image_url,
+                video_path=video_url,
+                publish_date=date.today()
+            )
+
+            try:
+                db.session.add(post)
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
+                flash("Slug conflict", "error")
+                return redirect(url_for("new_post"))
+
+            manage_db_size()
+
+            flash("Post created!", "success")
+            return redirect(url_for("admin_dashboard"))
+
         return render_template("admin_new_post.html")
 
-    @app.post("/admin/new")
+    @app.get("/admin/download/<int:id>")
     @login_required
-    def admin_new_post_post():
-        title = request.form.get("title", "").strip()
-        content = request.form.get("content", "").strip()
+    def download_post(id):
+        post = Post.query.get_or_404(id)
 
-        if not title or not content:
-            flash("Title and content are required.", "error")
-            return redirect(url_for("admin_new_post"))
+        path = os.path.join(os.getcwd(), f"{post.slug}.txt")
 
-        latest = Post.query.order_by(Post.publish_date.desc(), Post.created_at.desc()).first()
-        if latest:
-            delta = (date.today() - latest.publish_date).days
-            if delta < 7:
-                flash(f"Posting is locked. Next post allowed in {7 - delta} day(s).", "error")
-                return redirect(url_for("admin_new_post"))
+        with open(path, "w", encoding="utf-8") as f:
 
-        slug = make_unique_slug(title)
+            f.write(post.content)
 
-        image_file = request.files.get("image")
-        video_file = request.files.get("video")
+        return send_file(path, as_attachment=True)
 
-        image_path = None
-        video_path = None
+    # =========================
+    # ANALYTICS
+    # =========================
+    @app.post("/track/view/<slug>")
+    def track_view(slug):
+        post = Post.query.filter_by(slug=slug).first_or_404()
 
-        try:
-            if image_file and image_file.filename:
-                image_path = save_upload(app, image_file, kind="image")
+        analytics = PostAnalytics.query.filter_by(post_id=post.id).first()
+        if not analytics:
+            analytics = PostAnalytics(post_id=post.id)
+            db.session.add(analytics)
 
-            if video_file and video_file.filename:
-                video_path = save_upload(app, video_file, kind="video")
-        except ValueError as e:
-            flash(str(e), "error")
-            return redirect(url_for("admin_new_post"))
+        analytics.views += 1
 
-        post = Post(
-            title=title,
-            slug=slug,
-            content=content,
-            image_path=image_path,
-            video_path=video_path,
-            publish_date=date.today()
-        )
+        session = ViewSession(post_id=post.id)
+        db.session.add(session)
 
-        db.session.add(post)
         db.session.commit()
 
-        flash("Post published!", "success")
-        return redirect(url_for("admin_posts"))
+        return jsonify({"session_id": session.id})
+
+    @app.post("/track/time")
+    def track_time():
+        data = request.get_json()
+
+        session = ViewSession.query.get(data.get("session_id"))
+        if session:
+            session.duration = data.get("duration", 0)
+            db.session.commit()
+
+        return jsonify({"status": "ok"})
+
+    @app.post("/track/like/<slug>")
+    def like_post(slug):
+        post = Post.query.filter_by(slug=slug).first_or_404()
+
+        analytics = PostAnalytics.query.filter_by(post_id=post.id).first()
+        if not analytics:
+            analytics = PostAnalytics(post_id=post.id)
+            db.session.add(analytics)
+
+        analytics.likes += 1
+        db.session.commit()
+
+        return jsonify({"likes": analytics.likes})
+
+    @app.post("/track/share/<slug>")
+    def share_post(slug):
+        post = Post.query.filter_by(slug=slug).first_or_404()
+
+        platform = request.json.get("platform")
+
+        analytics = PostAnalytics.query.filter_by(post_id=post.id).first()
+        if not analytics:
+            analytics = PostAnalytics(post_id=post.id)
+            db.session.add(analytics)
+
+        analytics.shares += 1
+
+        db.session.add(ShareEvent(post_id=post.id, platform=platform))
+        db.session.commit()
+
+        return jsonify({"shares": analytics.shares})
+
+    # =========================
+    # ANALYTICS DASHBOARD (FIX)
+    # =========================
+    @app.get("/admin/analytics")
+    @login_required
+    def analytics_dashboard():
+
+        data = db.session.query(
+            Post.title,
+            func.coalesce(func.sum(PostAnalytics.views), 0),
+            func.coalesce(func.sum(PostAnalytics.likes), 0),
+            func.coalesce(func.sum(PostAnalytics.shares), 0),
+            func.avg(ViewSession.duration)
+        ).outerjoin(PostAnalytics, Post.id == PostAnalytics.post_id)\
+            .outerjoin(ViewSession, Post.id == ViewSession.post_id)\
+            .group_by(Post.id).all()
+
+        return render_template("admin_analytics.html", data=data)
+
+    # =========================
+    # DELETE POST
+    # =========================
+    @app.post("/admin/delete/<int:id>")
+    @login_required
+    def delete_post(id):
+        post = Post.query.get_or_404(id)
+
+        db.session.delete(post)
+        db.session.commit()
+
+        flash("Post deleted", "success")
+        return redirect(url_for("admin_dashboard"))
 
     return app
 
 
-# ---------------------------
-# Helpers
-# ---------------------------
-def ensure_default_admin(app: Flask):
-    default_user = os.environ.get("ADMIN_USERNAME", "admin")
-    default_pass = os.environ.get("ADMIN_PASSWORD", "admin123")
+# =========================
+# UTILITIES
+# =========================
+def extract_text(file):
+    name = file.filename.lower()
 
-    existing = User.query.filter_by(username=default_user).first()
-    if not existing:
-        u = User(
-            username=default_user,
-            password_hash=generate_password_hash(default_pass),
-            is_admin=True
-        )
-        db.session.add(u)
-        db.session.commit()
-        app.logger.warning("Default admin created. CHANGE ADMIN_PASSWORD in production.")
+    if name.endswith(".docx"):
+        doc = Document(file)
+        return "\n".join(p.text for p in doc.paragraphs)
 
+    elif name.endswith(".rtf"):
+        return rtf_to_text(file.read().decode())
 
-def slugify(text: str) -> str:
-    text = text.lower().strip()
-    text = re.sub(r"[^a-z0-9\s-]", "", text)
-    text = re.sub(r"[\s-]+", "-", text)
-    return text.strip("-") or "post"
+    elif name.endswith(".txt"):
+        return file.read().decode()
+
+    return ""
 
 
-def make_unique_slug(title: str) -> str:
+def manage_db_size():
+    total = db.session.query(func.sum(func.length(Post.content))).scalar() or 0
+    mb = total / (1024 * 1024)
+
+    if mb > MAX_DB_MB:
+        oldest = Post.query.order_by(Post.created_at.asc()).first()
+        if oldest:
+            db.session.delete(oldest)
+            db.session.commit()
+
+
+def slugify(text):
+    return re.sub(r'[^a-z0-9]+', '-', text.lower()).strip('-')
+
+
+def make_unique_slug(title):
     base = slugify(title)
     slug = base
-    i = 2
-    while Post.query.filter_by(slug=slug).first() is not None:
-        slug = f"{base}-{i}"
+    i = 1
+
+    while Post.query.filter_by(slug=slug).first():
         i += 1
+        slug = f"{base}-{i}"
+
     return slug
 
 
-def allowed_ext(app: Flask, filename: str, kind: str) -> bool:
-    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
-    if kind == "image":
-        return ext in app.config["ALLOWED_IMAGE_EXT"]
-    if kind == "video":
-        return ext in app.config["ALLOWED_VIDEO_EXT"]
-    return False
+def ensure_default_admin():
+    username = os.getenv("ADMIN_USERNAME", "admin")
+    password = os.getenv("ADMIN_PASSWORD", "admin123")
 
+    user = User.query.filter_by(username=username).first()
 
-def save_upload(app: Flask, file_storage, kind: str) -> str:
-    filename = secure_filename(file_storage.filename)
-    if not filename:
-        raise ValueError("Invalid filename")
-
-    if not allowed_ext(app, filename, kind):
-        raise ValueError(f"File type not allowed for {kind}: {filename}")
-
-    stamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S_%f")
-    final_name = f"{stamp}_{filename}"
-
-    subdir = "images" if kind == "image" else "videos"
-    save_dir = os.path.join(app.config["UPLOAD_FOLDER"], subdir)
-    os.makedirs(save_dir, exist_ok=True)
-
-    abs_path = os.path.join(save_dir, final_name)
-    file_storage.save(abs_path)
-
-    return f"{subdir}/{final_name}"
+    if not user:
+        db.session.add(User(
+            username=username,
+            password_hash=generate_password_hash(password),
+            is_admin=True
+        ))
+        db.session.commit()
 
 
 if __name__ == "__main__":
     app = create_app()
-    app.run(debug = True)
+    app.run(debug=True)

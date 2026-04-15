@@ -1,0 +1,31 @@
+﻿{% extends "base.html" %}
+
+{% block title %}All Posts{% endblock %}
+
+{% block content %}
+
+<h1 class="page-title">All Blog Posts</h1>
+
+{% for post in posts %}
+<div class="post-card glass">
+
+    <h2 class="post-card-title">
+        <a href="{{ url_for('post_detail', slug=post.slug) }}">
+            {{ post.title }}
+        </a>
+    </h2>
+
+    <div class="post-card-meta">
+        {{ post.publish_date }}
+    </div>
+
+    {% if post.image_path %}
+    <img src="{{ post.image_path }}" class="post-card-img">
+    {% endif %}
+
+</div>
+{% else %}
+<p class="empty-state">No posts found.</p>
+{% endfor %}
+
+{% endblock %}

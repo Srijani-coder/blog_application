@@ -3,26 +3,14 @@
 
 {% block content %}
 
+<!-- ================= HERO ================= -->
 <section class="hero glass">
-    <h1>Stats for stories that feel like our arguement</h1>
-    <p>Weekly posts with visual thinking for readers who love analysis.</p>
+    <h4> We believe in analytical thinking. Raise your true voice </h4>
+    <p>"In God we trust. All others must bring data." — W. Edwards Deming</p>
 
-    <div class="metrics">
-        <div class="metric">
-            <div class="metric-k">Weekly</div>
-            <div class="metric-v">New post cycle</div>
-        </div>
-        <div class="metric">
-            <div class="metric-k">Analytical Thinking</div>
-            <div class="metric-v">Support with Stats</div>
-        </div>
-        <div class="metric">
-            <div class="metric-k">Comment your arguement..</div>
-            <div class="metric-v">Discuss how you feel ..</div>
-        </div>
-    </div>
 </section>
 
+<!-- ================= TODAY POST ================= -->
 <section class="section">
     <div class="section-head">
         <h2>Today’s post</h2>
@@ -30,119 +18,237 @@
     </div>
 
     {% if todays_post %}
-    <article class="card glass">
-        <div>
-            <h3 class="post-title">{{ todays_post.title }}</h3>
-            <div class="meta">Published: {{ todays_post.publish_date }}</div>
-        </div>
+    <article class="card glass frost-card">
+
+        <h3 class="post-title">{{ todays_post.title }}</h3>
+        <div class="meta">Published: {{ todays_post.publish_date }}</div>
 
         {% if todays_post.image_path %}
-        <img class="media" src="{{ url_for('uploaded_file', filepath=todays_post.image_path) }}" alt="Post image">
-        {% endif %}
-
-        {% if todays_post.video_path %}
-        <video class="media" controls>
-            <source src="{{ url_for('uploaded_file', filepath=todays_post.video_path) }}">
-        </video>
+        <img class="media" src="{{ todays_post.image_path }}" alt="Post image">
         {% endif %}
 
         <div class="content">{{ todays_post.content | safe }}</div>
 
-        <!-- Comments -->
-        <div class="comments" data-slug="{{ todays_post.slug }}">
-            <div class="comments-head">
-                <div class="comments-title">
-                    Comments <span class="count">({{ todays_comment_count }})</span>
+        <!-- ===== ACTIONS ===== -->
+        <div class="post-actions">
+            <button class="btn like-btn" onclick="likePost('{{ todays_post.slug }}')">💜 Like</button>
+
+            <div class="share-dropdown">
+                <button class="btn ghost">Share ⬇</button>
+                <div class="share-menu">
+                    <a href="#" onclick="sharePost('{{ todays_post.slug }}','whatsapp')">WhatsApp</a>
+                    <a href="#" onclick="sharePost('{{ todays_post.slug }}','facebook')">Facebook</a>
+                    <a href="#" onclick="sharePost('{{ todays_post.slug }}','twitter')">Twitter</a>
+                    <a href="#" onclick="sharePost('{{ todays_post.slug }}','telegram')">Telegram</a>
+                    <a href="#" onclick="sharePost('{{ todays_post.slug }}','gmail')">Gmail</a>
                 </div>
             </div>
+        </div>
 
-            <form class="comment-form" method="post" action="{{ url_for('add_comment', slug=todays_post.slug) }}">
-                <input name="name" placeholder="Your name" required maxlength="80">
-                <textarea name="text" rows="3" placeholder="Write a comment..." required maxlength="4000"></textarea>
-                <button class="btn" type="submit">Post comment</button>
+        <!-- ===== COMMENTS ===== -->
+        <div class="comments">
+            <div class="comments-title">
+                Comments ({{ todays_comment_count }})
+            </div>
+
+            <form method="post" action="{{ url_for('add_comment', slug=todays_post.slug) }}">
+                <input name="name" placeholder="Your name" required>
+                <textarea name="text" placeholder="Write comment..." required></textarea>
+                <button class="btn">Post</button>
             </form>
 
-            <div class="comment-list" id="commentList-{{ todays_post.slug }}">
-                {% for c in todays_comments %}
-                <div class="comment">
-                    <div class="comment-top">
-                        <div class="comment-name">{{ c.name }}</div>
-                        <div class="comment-time">{{ c.created_at.strftime("%Y-%m-%d %H:%M UTC") }}</div>
-                    </div>
-                    <div class="comment-text">{{ c.text }}</div>
-                </div>
-                {% endfor %}
+            {% for c in todays_comments %}
+            <div class="comment">
+                <b>{{ c.name }}</b>
+                <p>{{ c.text }}</p>
             </div>
-
-            {% if todays_comment_count > comments_page_size %}
-            <button class="btn ghost load-more"
-                    data-slug="{{ todays_post.slug }}"
-                    data-offset="{{ todays_comments|length }}">
-                Read more comments…
-            </button>
-            {% endif %}
+            {% endfor %}
         </div>
+
     </article>
     {% else %}
     <div class="empty glass card">
-        No post published today. 
+        No post today
     </div>
     {% endif %}
 </section>
 
+<!-- ================= RECENT GRID ================= -->
 <section class="section">
     <div class="section-head">
-        <h2>Last 7 days</h2>
-        <button class="btn ghost" id="toggleTrending">Toggle</button>
+        <h2>Recent Posts</h2>
     </div>
 
-    <div class="grid" id="postGrid">
+    <div class="grid">
         {% for p in recent_posts %}
-        <a class="glass card-link" href="{{ url_for('post_detail', slug=p.slug) }}">
-            <div class="card-top">
-                <div class="card-title">{{ p.title }}</div>
-                <div class="card-date">{{ p.publish_date }}</div>
-            </div>
+        <a class="card glass hover-card" href="{{ url_for('post_detail', slug=p.slug) }}">
+            <h4>{{ p.title }}</h4>
 
             {% if p.image_path %}
-            <img class="thumb" src="{{ url_for('uploaded_file', filepath=p.image_path) }}" alt="thumb">
+            <img src="{{ p.image_path }}" class="thumb">
             {% endif %}
 
-            <div class="card-snippet">
-                {{ (p.content[:180] ~ ("..." if p.content|length > 180 else "")) }}
-            </div>
-
-            <div class="card-footer">
-                <span class="spark">↗</span> Open article
-            </div>
+            <p>{{ p.content[:120] }}...</p>
         </a>
         {% endfor %}
     </div>
 </section>
 
-<section class="section pentagon-section">
-    <div class="section-head">
-        <h2>Explore Stories</h2>
-    </div>
+<!-- ================= HEXAGON BLOG STRIP ================= -->
+<section class="section">
+    <h2 class="section-head">Explore More</h2>
 
-    <div class="pentagon-scroll">
-        {% for p in recent_posts[:8] %}
-        <a class="pentagon-card" href="{{ url_for('post_detail', slug=p.slug) }}">
+    <div class="hex-scroll">
 
-            <div class="pentagon-shape">
-                {% if p.image_url %}
-                <img src="{{ p.image_url }}" alt="thumb">
-                {% endif %}
-            </div>
+        {% for p in recent_posts %}
+        <a href="{{ url_for('post_detail', slug=p.slug) }}" class="hex-card">
 
-            <div class="pentagon-content">
-                <div class="pentagon-title">{{ p.title }}</div>
-                <div class="pentagon-date">{{ p.publish_date }}</div>
+            <div class="hex-inner">
+                <h4>{{ p.title[:30] }}</h4>
+                <span>Read →</span>
             </div>
 
         </a>
         {% endfor %}
+
     </div>
 </section>
+
+<!-- ================= STYLES ================= -->
+<style>
+
+    /* ===== Frost Glass ===== */
+    .frost-card {
+        background: rgba(255,255,255,0.06);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 20px;
+        padding: 20px;
+    }
+
+    /* ===== Buttons ===== */
+    .post-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .like-btn {
+        background: linear-gradient(45deg, purple, violet);
+        color: white;
+    }
+
+    /* ===== Share Dropdown ===== */
+    .share-dropdown {
+        position: relative;
+    }
+
+    .share-menu {
+        display: none;
+        position: absolute;
+        background: #111;
+        padding: 10px;
+        border-radius: 10px;
+    }
+
+    .share-dropdown:hover .share-menu {
+        display: block;
+    }
+
+    .share-menu a {
+        display: block;
+        color: white;
+        padding: 5px;
+    }
+
+    /* ===== Grid ===== */
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px,1fr));
+        gap: 20px;
+    }
+
+    /* ===== Hover Cards ===== */
+    .hover-card:hover {
+        transform: translateY(-5px);
+    }
+
+    /* ===== HEXAGON CARDS ===== */
+    .hex-scroll {
+        display: flex;
+        gap: 20px;
+        overflow-x: auto;
+        padding: 20px;
+    }
+
+        /* Purple Ice Scrollbar */
+        .hex-scroll::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .hex-scroll::-webkit-scrollbar-thumb {
+            background: linear-gradient(90deg, purple, violet);
+            border-radius: 10px;
+        }
+
+    /* Hex Shape */
+    .hex-card {
+        width: 180px;
+        height: 200px;
+        background: linear-gradient(145deg, #6a00ff, #a855f7);
+        clip-path: polygon( 50% 0%, 90% 25%, 90% 75%, 50% 100%, 10% 75%, 10% 25% );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        text-align: center;
+        transition: 0.3s;
+    }
+
+        .hex-card:hover {
+            transform: scale(1.05);
+        }
+
+    .hex-inner {
+        padding: 10px;
+    }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 768px) {
+        .hex-card {
+            width: 140px;
+            height: 160px;
+        }
+    }
+</style>
+
+<!-- ================= JS ================= -->
+<script>
+
+function likePost(slug){
+    fetch(`/track/like/${slug}`, {method:'POST'})
+}
+
+function sharePost(slug, platform){
+    fetch(`/track/share/${slug}`, {
+        method:'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({platform:platform})
+    })
+
+    const url = window.location.href
+
+    if(platform==="whatsapp"){
+        window.open(`https://wa.me/?text=${url}`)
+    }
+    if(platform==="facebook"){
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`)
+    }
+    if(platform==="twitter"){
+        window.open(`https://twitter.com/intent/tweet?url=${url}`)
+    }
+}
+
+</script>
 
 {% endblock %}
