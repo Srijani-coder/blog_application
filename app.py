@@ -278,16 +278,26 @@ def create_app():
     def track_view(slug):
         post = Post.query.filter_by(slug=slug).first_or_404()
 
+        data = request.get_json()
+        device_id = data.get("device_id")
+
         analytics = PostAnalytics.query.filter_by(post_id=post.id).first()
         if not analytics:
             analytics = PostAnalytics(post_id=post.id)
             db.session.add(analytics)
 
-        analytics.views += 1
+        # ✅ Unique view per device per day
+        existing = ViewSession.query.filter_by(
+            post_id=post.id,
+            device_id=device_id
+            ).first()
 
-        session = ViewSession(post_id=post.id)
+        if not existing:
+            analytics.views += 1
+
+        session = ViewSession(post_id=post.id, device_id=device_id)
+
         db.session.add(session)
-
         db.session.commit()
 
         return jsonify({"session_id": session.id})
@@ -307,30 +317,54 @@ def create_app():
     def like_post(slug):
         post = Post.query.filter_by(slug=slug).first_or_404()
 
+        data = request.get_json()
+        device_id = data.get("device_id")
+
         analytics = PostAnalytics.query.filter_by(post_id=post.id).first()
         if not analytics:
             analytics = PostAnalytics(post_id=post.id)
             db.session.add(analytics)
 
-        analytics.likes += 1
+        existing = ShareEvent.query.filter_by(
+            post_id=post.id,
+            platform="like",
+            device_id=device_id
+           ).first()
+        if not existing:
+            analytics.likes += 1
+
+            db.session.add(ShareEvent(
+                post_id=post.id,
+                platform="like",
+                device_id=device_id
+            ))
         db.session.commit()
 
         return jsonify({"likes": analytics.likes})
 
     @app.post("/track/share/<slug>")
+
     def share_post(slug):
         post = Post.query.filter_by(slug=slug).first_or_404()
 
-        platform = request.json.get("platform")
+        data = request.get_json()
+        platform = data.get("platform")
+        device_id = data.get("device_id")
 
         analytics = PostAnalytics.query.filter_by(post_id=post.id).first()
+
         if not analytics:
             analytics = PostAnalytics(post_id=post.id)
             db.session.add(analytics)
-
+        
         analytics.shares += 1
 
-        db.session.add(ShareEvent(post_id=post.id, platform=platform))
+        db.session.add(ShareEvent(
+            post_id=post.id,
+            platform=platform,
+            device_id=device_id
+        ))
+
         db.session.commit()
 
         return jsonify({"shares": analytics.shares})

@@ -99,6 +99,7 @@ class ViewSession(db.Model):
     __tablename__ = "view_sessions"
 
     id = db.Column(db.Integer, primary_key=True)
+    device_id = db.Column(db.String(120))
 
     post_id = db.Column(
         db.Integer,

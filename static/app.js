@@ -1,4 +1,15 @@
-﻿document.addEventListener("DOMContentLoaded", () => {
+﻿function getDeviceId() {
+    let id = localStorage.getItem("device_id");
+
+    if (!id) {
+        id = "dev-" + Math.random().toString(36).substring(2) + Date.now();
+        localStorage.setItem("device_id", id);
+    }
+
+    return id;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
 
     // =============================
     // EXISTING TRENDING TOGGLE (UNCHANGED)
@@ -24,7 +35,6 @@
 
     const postContainer = document.querySelector(".comments");
 
-    // 🔥 IMPORTANT: do NOT return here
     if (postContainer) {
 
         const slug = postContainer.dataset.slug;
@@ -33,21 +43,27 @@
         let startTime = Date.now();
 
         // -----------------------------
-        // TRACK VIEW
+        // TRACK VIEW ✅ FIXED
         // -----------------------------
         fetch(`/track/view/${slug}`, {
-            method: "POST"
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                device_id: getDeviceId()
+            })
         })
             .then(res => res.json())
             .then(data => {
-                sessionId = data.session_id;
+                sessionId = data.session_id; // 🔥 CRITICAL FIX
             })
             .catch(err => console.error("View tracking error:", err));
 
         // -----------------------------
-        // TRACK TIME SPENT
+        // TRACK TIME SPENT ✅ IMPROVED
         // -----------------------------
-        window.addEventListener("beforeunload", () => {
+        function sendTime() {
             if (!sessionId) return;
 
             const duration = Math.floor((Date.now() - startTime) / 1000);
@@ -56,6 +72,13 @@
                 session_id: sessionId,
                 duration: duration
             }));
+        }
+
+        window.addEventListener("beforeunload", sendTime);
+        window.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "hidden") {
+                sendTime();
+            }
         });
 
         // -----------------------------
@@ -67,7 +90,13 @@
             likeBtn.addEventListener("click", () => {
 
                 fetch(`/track/like/${slug}`, {
-                    method: "POST"
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        device_id: getDeviceId()
+                    })
                 })
                     .then(res => res.json())
                     .then(data => {
@@ -88,13 +117,26 @@
             btn.addEventListener("click", () => {
 
                 const platform = btn.dataset.platform;
+                const url = window.location.href;
 
+                // 🔥 REAL SHARE
+                if (platform === "twitter") {
+                    window.open(`https://twitter.com/intent/tweet?url=${url}`);
+                }
+                if (platform === "linkedin") {
+                    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`);
+                }
+
+                // 🔥 TRACK
                 fetch(`/track/share/${slug}`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({ platform: platform })
+                    body: JSON.stringify({
+                        platform: platform,
+                        device_id: getDeviceId()
+                    })
                 })
                     .then(res => res.json())
                     .then(data => {
