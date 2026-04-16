@@ -196,7 +196,14 @@ def create_app():
             # DOC upload
             docfile = request.files.get("docfile")
             if docfile and docfile.filename:
-                content = extract_text(docfile)
+                content = extract_rich_content(docfile)
+
+            if not content:
+                flash("Provide content or upload a document", "error")
+                return redirect(url_for("new_post"))
+
+            # ✅ FIX LIST STRUCTURE HERE
+            content = wrap_lists(content)
 
             image_url = None
             video_url = None
@@ -367,21 +374,79 @@ def create_app():
 # =========================
 # UTILITIES
 # =========================
-def extract_text(file):
+
+def wrap_lists(html):
+    lines = html.split("\n")
+    result = []
+    in_list = False
+
+    for line in lines:
+        if "<li>" in line:
+            if not in_list:
+                result.append("<ul>")
+                in_list = True
+            result.append(line)
+        else:
+            if in_list:
+                result.append("</ul>")
+                in_list = False
+            result.append(line)
+
+    if in_list:
+        result.append("</ul>")
+
+    return "\n".join(result)
+def extract_rich_content(file):
     name = file.filename.lower()
 
+    html = ""
+
+    # ================= DOCX =================
     if name.endswith(".docx"):
         doc = Document(file)
-        return "\n".join(p.text for p in doc.paragraphs)
 
+        # ---- TEXT ----
+        for para in doc.paragraphs:
+            text = para.text.strip()
+            if not text:
+                continue
+
+            # Detect bullet points
+            if para.style.name.lower().startswith("list"):
+                html += f"<li>{text}</li>"
+            else:
+                html += f"<p>{text}</p>"
+
+        # ---- IMAGES ----
+        for rel in doc.part._rels:
+            rel = doc.part._rels[rel]
+            if "image" in rel.target_ref:
+                image_data = rel.target_part.blob
+
+                # Upload to Cloudinary
+                res = cloudinary.uploader.upload(
+                    image_data,
+                    folder="statsdash/content_images",
+                    resource_type="image"
+                )
+
+                img_url = res["secure_url"]
+
+                html += f'<img src="{img_url}" class="media">'
+
+        return html
+
+    # ================= RTF =================
     elif name.endswith(".rtf"):
-        return rtf_to_text(file.read().decode())
+        text = rtf_to_text(file.read().decode())
+        return "".join(f"<p>{line}</p>" for line in text.split("\n") if line.strip())
 
+    # ================= TXT =================
     elif name.endswith(".txt"):
-        return file.read().decode()
+        text = file.read().decode()
+        return "".join(f"<p>{line}</p>" for line in text.split("\n") if line.strip())
 
     return ""
-
 
 def manage_db_size():
     total = db.session.query(func.sum(func.length(Post.content))).scalar() or 0

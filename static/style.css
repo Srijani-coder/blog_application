@@ -974,3 +974,528 @@ p {
 .main {
     max-width: 800px;
 }
+
+/* ================= MOBILE FIRST ================= */
+@media (max-width: 768px) {
+
+    /* ===== TOPBAR ===== */
+    .topbar-inner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 12px;
+    }
+
+    .topbar-tags {
+        display: none; /* cleaner mobile look */
+    }
+
+    .topbar-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .navbtn {
+        flex: 1;
+        text-align: center;
+        padding: 8px;
+        font-size: 14px;
+    }
+
+    /* ===== LAYOUT STACK ===== */
+    .shell {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding: 10px;
+    }
+
+    /* ===== SIDEBAR → TOP CARD ===== */
+    .sidebar {
+        width: 100%;
+        padding: 16px;
+        order: 1;
+    }
+
+    .main {
+        width: 100%;
+        order: 2;
+    }
+
+    /* ===== AUTHOR SECTION ===== */
+    .author-head {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .avatar {
+        width: 80px;
+        height: 80px;
+    }
+
+    .author-name {
+        font-size: 18px;
+    }
+
+    .author-sub {
+        font-size: 12px;
+    }
+
+    /* ===== CHIPS & PILLS ===== */
+    .chips, .mini-row {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .chip, .mini-pill {
+        font-size: 12px;
+        padding: 6px 10px;
+    }
+
+    /* ===== CONTENT ===== */
+    .main {
+        padding: 10px;
+    }
+
+    /* ===== FLASH ===== */
+    .flash {
+        font-size: 13px;
+        padding: 10px;
+    }
+
+    /* ===== FOOTER ===== */
+    .footer-inner {
+        font-size: 12px;
+        text-align: center;
+        padding: 12px;
+    }
+}
+
+
+/* ================= EXTRA SMALL DEVICES ================= */
+@media (max-width: 480px) {
+
+    .logo span {
+        font-size: 16px;
+    }
+
+    .navbtn {
+        font-size: 12px;
+        padding: 6px;
+    }
+
+    .author-bio {
+        font-size: 13px;
+    }
+
+    .mini-title {
+        font-size: 13px;
+    }
+}
+
+/* ================= POST PAGE MOBILE ================= */
+@media (max-width: 768px) {
+
+    /* SECTION SPACING */
+    .section {
+        padding: 10px;
+    }
+
+    /* CARD */
+    .card {
+        padding: 16px;
+        border-radius: 16px;
+    }
+
+    /* TITLE */
+    .post-title {
+        font-size: 22px;
+        line-height: 1.3;
+    }
+
+    .meta {
+        font-size: 12px;
+        margin-top: 4px;
+    }
+
+    /* IMAGE / VIDEO */
+    .media {
+        width: 100%;
+        height: auto;
+        border-radius: 12px;
+        margin: 12px 0;
+    }
+
+    /* CONTENT TEXT */
+    .content {
+        font-size: 15px;
+        line-height: 1.7;
+        word-break: break-word;
+    }
+
+        /* HEADINGS INSIDE CONTENT */
+        .content h1,
+        .content h2,
+        .content h3 {
+            font-size: 18px;
+            margin-top: 16px;
+        }
+
+    /* ================= ACTION BUTTONS ================= */
+    .post-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 16px;
+    }
+
+        .post-actions .btn {
+            flex: 1;
+            font-size: 13px;
+            padding: 8px;
+            text-align: center;
+        }
+
+    .share-count {
+        width: 100%;
+        text-align: center;
+        font-size: 12px;
+        margin-top: 6px;
+    }
+
+    /* ================= COMMENTS ================= */
+    .comments {
+        margin-top: 20px;
+    }
+
+    .comments-title {
+        font-size: 16px;
+    }
+
+    /* FORM */
+    .comment-form {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+        .comment-form input,
+        .comment-form textarea {
+            width: 100%;
+            font-size: 14px;
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .comment-form button {
+            width: 100%;
+        }
+
+    /* COMMENT LIST */
+    .comment {
+        padding: 10px;
+        border-radius: 12px;
+        margin-bottom: 10px;
+    }
+
+    .comment-top {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .comment-name {
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .comment-time {
+        font-size: 11px;
+        opacity: 0.7;
+    }
+
+    .comment-text {
+        font-size: 14px;
+        margin-top: 6px;
+        line-height: 1.5;
+    }
+
+    /* LOAD MORE */
+    .load-more {
+        width: 100%;
+        margin-top: 10px;
+    }
+}
+
+
+/* ================= EXTRA SMALL ================= */
+@media (max-width: 480px) {
+
+    .post-title {
+        font-size: 20px;
+    }
+
+    .content {
+        font-size: 14px;
+    }
+
+    .post-actions .btn {
+        font-size: 12px;
+        padding: 6px;
+    }
+}
+
+/* ================= HOME MOBILE ================= */
+@media (max-width: 768px) {
+
+    /* ===== HERO ===== */
+    .hero {
+        padding: 20px 14px;
+        text-align: center;
+    }
+
+        .hero h4 {
+            font-size: 16px;
+            line-height: 1.4;
+        }
+
+        .hero p {
+            font-size: 13px;
+            margin-top: 6px;
+            opacity: 0.8;
+        }
+
+    /* ===== SECTION HEAD ===== */
+    .section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+        .section-head h2 {
+            font-size: 18px;
+        }
+
+    .badge {
+        font-size: 10px;
+        padding: 4px 8px;
+    }
+
+    /* ===== TODAY POST CARD ===== */
+    .frost-card {
+        padding: 16px;
+        border-radius: 16px;
+    }
+
+    .post-title {
+        font-size: 20px;
+        line-height: 1.3;
+    }
+
+    .meta {
+        font-size: 12px;
+    }
+
+    .media {
+        width: 100%;
+        height: auto;
+        border-radius: 12px;
+        margin: 12px 0;
+    }
+
+    .content {
+        font-size: 15px;
+        line-height: 1.7;
+    }
+
+    /* ===== ACTIONS ===== */
+    .post-actions {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+        .post-actions .btn {
+            flex: 1;
+            font-size: 13px;
+            padding: 8px;
+            text-align: center;
+        }
+
+    /* ===== SHARE MENU FIX (tap instead of hover) ===== */
+    .share-dropdown {
+        width: 100%;
+    }
+
+        .share-dropdown .btn {
+            width: 100%;
+        }
+
+    .share-menu {
+        position: relative;
+        width: 100%;
+        margin-top: 6px;
+    }
+
+    .share-dropdown:hover .share-menu {
+        display: none; /* disable hover on mobile */
+    }
+
+    .share-dropdown.active .share-menu {
+        display: block;
+    }
+
+    .share-menu a {
+        padding: 10px;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* ===== COMMENTS ===== */
+    .comments input,
+    .comments textarea {
+        width: 100%;
+        padding: 10px;
+        font-size: 14px;
+        border-radius: 10px;
+        margin-bottom: 8px;
+    }
+
+    .comments button {
+        width: 100%;
+    }
+
+    .comment {
+        padding: 10px;
+        border-radius: 12px;
+        margin-top: 10px;
+    }
+
+        .comment p {
+            font-size: 14px;
+        }
+
+    /* ===== GRID → SINGLE COLUMN FEEL ===== */
+    .grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .thumb {
+        width: 100%;
+        border-radius: 10px;
+        margin: 8px 0;
+    }
+
+    /* ===== HEX SCROLL ===== */
+    .hex-scroll {
+        gap: 14px;
+        padding: 10px;
+    }
+
+    .hex-card {
+        width: 130px;
+        height: 150px;
+        flex-shrink: 0;
+    }
+
+    .hex-inner h4 {
+        font-size: 12px;
+    }
+}
+
+
+/* ================= EXTRA SMALL ================= */
+@media (max-width: 480px) {
+
+    .hero h4 {
+        font-size: 14px;
+    }
+
+    .post-title {
+        font-size: 18px;
+    }
+
+    .content {
+        font-size: 14px;
+    }
+
+    .post-actions .btn {
+        font-size: 12px;
+        padding: 6px;
+    }
+}
+
+/* ================= POSTS PAGE MOBILE ================= */
+@media (max-width: 768px) {
+
+    /* PAGE TITLE */
+    .page-title {
+        font-size: 22px;
+        text-align: center;
+        margin-bottom: 16px;
+    }
+
+    /* POST CARD */
+    .post-card {
+        padding: 14px;
+        border-radius: 16px;
+        margin-bottom: 14px;
+    }
+
+    /* TITLE */
+    .post-card-title {
+        font-size: 18px;
+        line-height: 1.3;
+    }
+
+        .post-card-title a {
+            text-decoration: none;
+        }
+
+    /* META */
+    .post-card-meta {
+        font-size: 12px;
+        margin-top: 4px;
+        opacity: 0.7;
+    }
+
+    /* IMAGE */
+    .post-card-img {
+        width: 100%;
+        height: auto;
+        border-radius: 12px;
+        margin-top: 10px;
+    }
+
+    /* TOUCH FEEDBACK */
+    .post-card:active {
+        transform: scale(0.98);
+    }
+
+    /* EMPTY STATE */
+    .empty-state {
+        text-align: center;
+        font-size: 14px;
+        padding: 20px;
+    }
+}
+
+
+/* ================= EXTRA SMALL ================= */
+@media (max-width: 480px) {
+
+    .page-title {
+        font-size: 20px;
+    }
+
+    .post-card-title {
+        font-size: 16px;
+    }
+
+    .post-card-meta {
+        font-size: 11px;
+    }
+}
