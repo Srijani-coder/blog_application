@@ -20,6 +20,34 @@
     </style>
 </head>
 
+<div id="blogChatbot">
+    <button id="chatToggle">💬</button>
+
+    <div id="chatWindow">
+        <div class="chatHeader">
+            <div>
+                <strong>JuicyStatControversy Assistant</strong>
+                <p>Ask me about the blog articles</p>
+            </div>
+            <button id="chatClose">×</button>
+        </div>
+
+        <div id="chatMessages">
+            <div class="botMsg">
+                Hi, welcome to StatsDash! I can help you explore the latest articles, explain posts, and suggest what to read.
+            </div>
+        </div>
+
+        <div class="chatInputBox">
+            <input id="chatInput" type="text" placeholder="Ask about the blog..." />
+            <button id="chatSend">Send</button>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='chatbot.css') }}">
+<script src="{{ url_for('static', filename='chatbot.js') }}"></script>
+
 <body>
 
     <!-- ================= BACKGROUND ================= -->

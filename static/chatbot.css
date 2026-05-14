@@ -1,0 +1,121 @@
+﻿#blogChatbot {
+    position: fixed;
+    right: 22px;
+    bottom: 22px;
+    z-index: 9999;
+    font-family: Inter, system-ui, sans-serif;
+}
+
+#chatToggle {
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    font-size: 26px;
+    color: white;
+    background: linear-gradient(135deg, #7C5CFF, #A78BFA);
+    box-shadow: 0 18px 45px rgba(124, 92, 255, 0.45);
+}
+
+#chatWindow {
+    display: none;
+    width: 360px;
+    height: 520px;
+    margin-bottom: 14px;
+    border-radius: 24px;
+    overflow: hidden;
+    background: rgba(22, 18, 44, 0.86);
+    backdrop-filter: blur(18px);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+    color: white;
+}
+
+.chatHeader {
+    padding: 18px;
+    background: linear-gradient(135deg, rgba(124,92,255,0.95), rgba(167,139,250,0.85));
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+    .chatHeader p {
+        margin: 3px 0 0;
+        font-size: 12px;
+        opacity: 0.9;
+    }
+
+#chatClose {
+    border: none;
+    background: transparent;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+#chatMessages {
+    height: 360px;
+    padding: 16px;
+    overflow-y: auto;
+}
+
+.botMsg,
+.userMsg {
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.botMsg {
+    background: rgba(255,255,255,0.12);
+    border-top-left-radius: 4px;
+}
+
+.userMsg {
+    background: rgba(124,92,255,0.85);
+    margin-left: 38px;
+    border-top-right-radius: 4px;
+}
+
+.chatInputBox {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    background: rgba(255,255,255,0.08);
+}
+
+#chatInput {
+    flex: 1;
+    border: none;
+    border-radius: 14px;
+    padding: 12px;
+    outline: none;
+}
+
+#chatSend {
+    border: none;
+    border-radius: 14px;
+    padding: 0 16px;
+    color: white;
+    background: #7C5CFF;
+    cursor: pointer;
+}
+
+@media (max-width: 520px) {
+    #chatWindow {
+        width: calc(100vw - 28px);
+        height: 74vh;
+    }
+
+    #blogChatbot {
+        right: 14px;
+        bottom: 14px;
+    }
+
+    #chatMessages {
+        height: calc(74vh - 155px);
+    }
+}
+1

@@ -8,3 +8,8 @@ psycopg2-binary
 cloudinary
 python-docx
 striprtf
+langchain
+langchain-huggingface
+huggingface-hub
+beautifulsoup4
+langchain-openai

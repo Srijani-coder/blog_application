@@ -25,6 +25,7 @@ from striprtf.striprtf import rtf_to_text
 
 from config import Config
 from models import db, User, Post, Comment, PostAnalytics, ViewSession, ShareEvent
+from chatbot import blog_chatbot_reply
 
 
 COMMENTS_PAGE_SIZE = 10
@@ -401,6 +402,17 @@ def create_app():
 
         flash("Post deleted", "success")
         return redirect(url_for("admin_dashboard"))
+
+    @app.post("/chatbot")
+    def chatbot():
+        data = request.get_json() or {}
+        user_message = data.get("message", "")
+
+        reply = blog_chatbot_reply(user_message)
+
+        return jsonify({
+            "reply": reply
+        })
 
     return app
 
