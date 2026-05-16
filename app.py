@@ -2,6 +2,7 @@
 import re
 from datetime import date, datetime, timedelta
 from dotenv import load_dotenv
+from models import SummaryFeedback
 
 load_dotenv()
 
@@ -413,6 +414,26 @@ def create_app():
         return jsonify({
             "reply": reply
         })
+
+    @app.post("/summary-feedback")
+    def summary_feedback():
+
+        data = request.get_json()
+
+        feedback = SummaryFeedback(
+            post_id=data.get("post_id"),
+            selected=data.get("selected"),
+            summary_a=data.get("summary_a"),
+            summary_b=data.get("summary_b"),
+            user_prompt=data.get("prompt")
+          )
+
+        db.session.add(feedback)
+        db.session.commit()
+
+        return jsonify({
+        "status": "success"
+       })
 
     return app
 

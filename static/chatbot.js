@@ -1,9 +1,11 @@
-const chatToggle = document.getElementById("chatToggle");
+﻿const chatToggle = document.getElementById("chatToggle");
 const chatWindow = document.getElementById("chatWindow");
 const chatClose = document.getElementById("chatClose");
 const chatSend = document.getElementById("chatSend");
 const chatInput = document.getElementById("chatInput");
 const chatMessages = document.getElementById("chatMessages");
+
+let lastUserPrompt = "";
 
 chatToggle.addEventListener("click", () => {
     chatWindow.style.display = "block";
@@ -33,6 +35,8 @@ async function sendMessage() {
     const message = chatInput.value.trim();
     if (!message) return;
 
+    lastUserPrompt = message;
+
     addMessage(message, "userMsg");
     chatInput.value = "";
 
@@ -49,12 +53,46 @@ async function sendMessage() {
         });
 
         const data = await response.json();
-
         thinkingMsg.innerHTML = data.reply || "Sorry, I could not answer that.";
+
     } catch (error) {
         thinkingMsg.textContent = "Sorry, the chatbot is not reachable right now.";
     }
 }
+
+async function sendSummaryFeedback(postId, selected) {
+    try {
+        const response = await fetch("/summary-feedback", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                post_id: postId,
+                selected: selected,
+                prompt: lastUserPrompt
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error("Feedback request failed");
+        }
+
+        addMessage(
+            "✨ Thanks! Your choice helps JSTCon AI learn better summaries.",
+            "botMsg"
+        );
+
+    } catch (e) {
+        console.log(e);
+        addMessage(
+            "Sorry, I could not save your feedback right now.",
+            "botMsg"
+        );
+    }
+}
+
+window.sendSummaryFeedback = sendSummaryFeedback;
 
 chatSend.addEventListener("click", sendMessage);
 

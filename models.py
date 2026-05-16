@@ -4,29 +4,22 @@ from datetime import datetime, date
 
 db = SQLAlchemy()
 
-# =========================
-# USER
-# =========================
+
 class User(UserMixin, db.Model):
     __tablename__ = "users"
-    id = db.Column(db.Integer, primary_key=True)
 
+    id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-
     is_admin = db.Column(db.Boolean, default=True, nullable=False)
 
 
-# =========================
-# POST
-# =========================
 class Post(db.Model):
     __tablename__ = "posts"
-    id = db.Column(db.Integer, primary_key=True)
 
+    id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     slug = db.Column(db.String(240), unique=True, nullable=False)
-
     content = db.Column(db.Text, nullable=False)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -36,7 +29,6 @@ class Post(db.Model):
 
     publish_date = db.Column(db.Date, default=date.today, nullable=False)
 
-    # Relationship
     comments = db.relationship(
         "Comment",
         backref="post",
@@ -44,33 +36,61 @@ class Post(db.Model):
         cascade="all, delete-orphan"
     )
 
+    analytics = db.relationship(
+        "PostAnalytics",
+        backref="post",
+        uselist=False,
+        cascade="all, delete-orphan"
+    )
+
+    view_sessions = db.relationship(
+        "ViewSession",
+        backref="post",
+        lazy=True,
+        cascade="all, delete-orphan"
+    )
+
+    share_events = db.relationship(
+        "ShareEvent",
+        backref="post",
+        lazy=True,
+        cascade="all, delete-orphan"
+    )
+
+    summary_feedback = db.relationship(
+        "SummaryFeedback",
+        backref="post",
+        lazy=True,
+        cascade="all, delete-orphan"
+    )
+
     def is_today(self):
         return self.publish_date == date.today()
 
 
-# =========================
-# COMMENT
-# =========================
 class Comment(db.Model):
     __tablename__ = "comments"
+
     id = db.Column(db.Integer, primary_key=True)
 
-    post_id = db.Column(db.Integer, db.ForeignKey("posts.id"), nullable=False, index=True)
+    post_id = db.Column(
+        db.Integer,
+        db.ForeignKey("posts.id"),
+        nullable=False,
+        index=True
+    )
 
-    # Public commenter (no login)
     name = db.Column(db.String(80), nullable=False)
     text = db.Column(db.Text, nullable=False)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        nullable=False,
+        index=True
+    )
 
 
-# =========================================================
-# ✅ NEW: ANALYTICS MODELS (REQUIRED FOR YOUR APP.PY)
-# =========================================================
-
-# -------------------------
-# POST ANALYTICS (AGGREGATE)
-# -------------------------
 class PostAnalytics(db.Model):
     __tablename__ = "post_analytics"
 
@@ -88,18 +108,13 @@ class PostAnalytics(db.Model):
     likes = db.Column(db.Integer, default=0, nullable=False)
     shares = db.Column(db.Integer, default=0, nullable=False)
 
-    # Relationship
-    post = db.relationship("Post", backref=db.backref("analytics", uselist=False))
 
-
-# -------------------------
-# VIEW SESSION (USER SESSION TRACKING)
-# -------------------------
 class ViewSession(db.Model):
     __tablename__ = "view_sessions"
 
     id = db.Column(db.Integer, primary_key=True)
-    device_id = db.Column(db.String(120))
+
+    device_id = db.Column(db.String(120), nullable=True)
 
     post_id = db.Column(
         db.Integer,
@@ -108,18 +123,15 @@ class ViewSession(db.Model):
         index=True
     )
 
-    started_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    started_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        nullable=False
+    )
 
-    # Duration in seconds
     duration = db.Column(db.Float, nullable=True)
 
-    # Relationship
-    post = db.relationship("Post", backref="view_sessions")
 
-
-# -------------------------
-# SHARE EVENTS (PLATFORM TRACKING)
-# -------------------------
 class ShareEvent(db.Model):
     __tablename__ = "share_events"
 
@@ -134,7 +146,37 @@ class ShareEvent(db.Model):
 
     platform = db.Column(db.String(50), nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    device_id = db.Column(db.String(120), nullable=True)
 
-    # Relationship
-    post = db.relationship("Post", backref="share_events")
+    created_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        nullable=False
+    )
+
+
+class SummaryFeedback(db.Model):
+    __tablename__ = "summary_feedback"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    post_id = db.Column(
+        db.Integer,
+        db.ForeignKey("posts.id"),
+        nullable=False,
+        index=True
+    )
+
+    user_prompt = db.Column(db.Text, nullable=True)
+
+    summary_a = db.Column(db.Text, nullable=True)
+    summary_b = db.Column(db.Text, nullable=True)
+
+    selected = db.Column(db.String(1), nullable=False)
+
+    created_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        nullable=False,
+        index=True
+    )
