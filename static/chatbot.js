@@ -1,4 +1,3 @@
-// JavaScript source code
 const chatToggle = document.getElementById("chatToggle");
 const chatWindow = document.getElementById("chatWindow");
 const chatClose = document.getElementById("chatClose");
@@ -16,10 +15,16 @@ chatClose.addEventListener("click", () => {
     chatToggle.style.display = "block";
 });
 
-function addMessage(text, className) {
+function addMessage(text, className, isHtml = false) {
     const div = document.createElement("div");
     div.className = className;
-    div.textContent = text;
+
+    if (isHtml) {
+        div.innerHTML = text;
+    } else {
+        div.textContent = text;
+    }
+
     chatMessages.appendChild(div);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
@@ -44,7 +49,8 @@ async function sendMessage() {
         });
 
         const data = await response.json();
-        thinkingMsg.textContent = data.reply || "Sorry, I could not answer that.";
+
+        thinkingMsg.innerHTML = data.reply || "Sorry, I could not answer that.";
     } catch (error) {
         thinkingMsg.textContent = "Sorry, the chatbot is not reachable right now.";
     }
@@ -56,4 +62,18 @@ chatInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
         sendMessage();
     }
+});
+
+document.querySelectorAll(".promptBtn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+        const prompt = btn.dataset.prompt;
+
+        if (prompt === "Help me understand the blog titled ") {
+            chatInput.value = prompt;
+            chatInput.focus();
+        } else {
+            chatInput.value = prompt;
+            sendMessage();
+        }
+    });
 });

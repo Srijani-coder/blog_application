@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 
 import os
 import re
@@ -67,42 +67,81 @@ def build_chat_model() -> ChatOpenAI:
 
 
 def blog_chatbot_reply(user_message: str) -> str:
-    if not user_message or not user_message.strip():
+    msg = (user_message or "").strip()
+
+    if not msg:
+        return "✨ Hi! Ask me for the latest article, a blog summary, or help finding posts."
+
+    # 1. Redirect to posts page
+    if any(x in msg.lower() for x in ["find posts", "finding posts", "all posts", "posts page"]):
+        return 'You can explore every article here: <a href="/posts">Open the Posts page</a>'
+
+    # 2. Latest blog article
+    if "latest blog article" in msg.lower() or "latest post" in msg.lower():
+        post = Post.query.order_by(Post.publish_date.desc()).first()
+
+        if not post:
+            return "No blog articles are available yet."
+
+        summary = clean_html(post.content)[:350]
+
         return (
-            "Hi! I'm your blog assistant. Ask me about the latest articles, "
-            "topics, insights, or which post you should read first."
+            f"<b>{post.title}</b><br>"
+            f"Published: {post.publish_date}<br>"
+            f"{summary}...<br>"
+            f'<a href="/article/{post.slug}">Read the article</a>'
         )
 
-    blog_context = get_blog_context()
-    chat = build_chat_model()
+    # 3. Explain specific titled blog
+    title_match = re.search(
+        r"blog titled\s+['\"]?(.*?)['\"]?$",
+        msg,
+        flags=re.IGNORECASE
+    )
 
-    system_prompt = f"""
-You are JSTCon AI Assistant, a warm PR chatbot for Srijani Chakrabarti's data blog.
+    if title_match:
+        title = title_match.group(1).strip()
 
-Your job:
-1. Greet visitors nicely.
-2. Explain blog articles in simple, attractive English when user will ask you.
-3. Recommend relevant blog posts only from the context.
-4. Show the latest post according to date when asked
-5. Never invent articles, authors, links, or claims.
-6. If information is unavailable, politely say so.
-6. Keep answers friendly, concise, and visitor-focused and in just 2-3 lines.
+        post = (
+            Post.query
+            .filter(Post.title.ilike(f"%{title}%"))
+            .order_by(Post.publish_date.desc())
+            .first()
+        )
 
-Available blog articles:
-{blog_context}
+        if not post:
+            return (
+                f"I could not find a blog titled <b>{title}</b>. "
+                'Please check the title or visit <a href="/posts">Posts</a>.'
+            )
+
+        content = clean_html(post.content)
+
+        chat = build_chat_model()
+
+        system_prompt = """
+You are JSTCon Assistant.
+Summarise the given blog in simple, attractive English.
+Use only the blog text provided.
+Keep it concise: 3 short lines maximum.
+Do not invent facts.
 """
 
-    try:
         response = chat.invoke([
             SystemMessage(content=system_prompt),
-            HumanMessage(content=user_message.strip())
+            HumanMessage(content=f"Title: {post.title}\n\nBlog text:\n{content}")
         ])
 
-        return response.content.strip()
-
-    except Exception as e:
-        print(f"Chatbot error: {e}")
         return (
-            "Sorry, the assistant is temporarily unavailable. "
-            "Please explore the latest articles from the homepage."
+            f"<b>{post.title}</b><br>"
+            f"{response.content.strip()}<br>"
+            f'<a href="/article/{post.slug}">Read full article</a>'
         )
+
+    # 4. Friendly fallback
+    return (
+        "I can help with three things: "
+        "<b>latest blog article</b>, "
+        "<b>Help me understand the blog titled ...</b>, "
+        'or <a href="/posts">finding posts</a>.'
+    )
