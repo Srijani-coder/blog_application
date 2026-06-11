@@ -14,7 +14,7 @@ from flask_login import (
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from sqlalchemy import func
+from sqlalchemy import func, text, inspect
 
 import cloudinary
 import cloudinary.uploader
@@ -23,10 +23,7 @@ from docx import Document
 from striprtf.striprtf import rtf_to_text
 
 from config import Config
-from models import (
-    db, User, Post, Comment, PostAnalytics,
-    ViewSession, ShareEvent, SummaryFeedback
-)
+from models import db, User, Post, Comment, PostAnalytics, ViewSession, ShareEvent, SummaryFeedback
 from chatbot import blog_chatbot_reply
 
 
@@ -54,6 +51,7 @@ def create_app():
 
     with app.app_context():
         db.create_all()
+        ensure_runtime_schema()
         ensure_default_admin()
 
     # =========================
@@ -397,25 +395,40 @@ def create_app():
     @app.post("/admin/delete/<int:id>")
     @login_required
     def delete_post(id):
+        """
+        Deletes one blog post safely.
+
+        Important fix:
+        Your production PostgreSQL table view_sessions is missing the
+        device_id column, while the SQLAlchemy model contains device_id.
+        So this route must NOT load ViewSession ORM rows during deletion.
+        It uses raw SQL DELETE statements based only on post_id.
+        """
         post = Post.query.get_or_404(id)
 
         try:
-            # Delete child/dependent records first to avoid foreign-key errors.
-            Comment.query.filter_by(post_id=id).delete(synchronize_session=False)
-            PostAnalytics.query.filter_by(post_id=id).delete(synchronize_session=False)
-            ViewSession.query.filter_by(post_id=id).delete(synchronize_session=False)
-            ShareEvent.query.filter_by(post_id=id).delete(synchronize_session=False)
-            SummaryFeedback.query.filter_by(post_id=id).delete(synchronize_session=False)
+            post_title = post.title
 
-            db.session.delete(post)
+            # Delete child/dependent records first.
+            # These raw SQL deletes avoid SELECTing missing ORM columns like
+            # view_sessions.device_id.
+            raw_delete_by_post_id(Comment, id)
+            raw_delete_by_post_id(PostAnalytics, id)
+            raw_delete_by_post_id(ViewSession, id)
+            raw_delete_by_post_id(ShareEvent, id)
+            raw_delete_by_post_id(SummaryFeedback, id)
+
+            # Delete the post itself using raw SQL too, so SQLAlchemy does not
+            # trigger relationship loading/cascade SELECT queries.
+            raw_delete_by_id(Post, id)
+
             db.session.commit()
-
-            flash("Post deleted successfully", "success")
+            flash(f"Post deleted: {post_title}", "success")
 
         except SQLAlchemyError as e:
             db.session.rollback()
-            app.logger.exception("Delete failed for post id %s", id)
-            flash(f"Delete failed: {str(e)}", "error")
+            print("DELETE ERROR:", str(e))
+            flash(f"Delete failed: {e}", "error")
 
         return redirect(url_for("admin_dashboard"))
 
@@ -456,6 +469,64 @@ def create_app():
 # =========================
 # UTILITIES
 # =========================
+
+def quoted_table_name(model):
+    """Return a safely quoted SQL table name for the current database."""
+    preparer = db.engine.dialect.identifier_preparer
+    return preparer.quote(model.__table__.name)
+
+
+def raw_delete_by_post_id(model, post_id):
+    """Delete rows from a model table using only post_id, without ORM loading."""
+    table_name = quoted_table_name(model)
+    db.session.execute(
+        text(f"DELETE FROM {table_name} WHERE post_id = :post_id"),
+        {"post_id": post_id}
+    )
+
+
+def raw_delete_by_id(model, row_id):
+    """Delete one row from a model table using only id, without ORM loading."""
+    table_name = quoted_table_name(model)
+    db.session.execute(
+        text(f"DELETE FROM {table_name} WHERE id = :id"),
+        {"id": row_id}
+    )
+
+
+def ensure_runtime_schema():
+    """
+    db.create_all() creates missing tables, but it does not add missing columns
+    to old production tables. This lightweight check adds columns your current
+    app.py uses but your existing database may not yet have.
+    """
+    try:
+        inspector = inspect(db.engine)
+        dialect = db.engine.dialect.name
+
+        def add_column_if_missing(table_name, column_name, column_sql):
+            if not inspector.has_table(table_name):
+                return
+
+            existing_columns = {col["name"] for col in inspector.get_columns(table_name)}
+            if column_name in existing_columns:
+                return
+
+            if dialect == "postgresql":
+                sql = f'ALTER TABLE "{table_name}" ADD COLUMN IF NOT EXISTS {column_sql}'
+            else:
+                sql = f'ALTER TABLE {table_name} ADD COLUMN {column_sql}'
+
+            db.session.execute(text(sql))
+            db.session.commit()
+
+        add_column_if_missing("view_sessions", "device_id", "device_id VARCHAR(255)")
+        add_column_if_missing("share_events", "device_id", "device_id VARCHAR(255)")
+
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        print("SCHEMA CHECK ERROR:", str(e))
+
 
 def wrap_lists(html):
     lines = html.split("\n")
@@ -538,15 +609,16 @@ def manage_db_size():
         oldest = Post.query.order_by(Post.created_at.asc()).first()
         if oldest:
             try:
-                Comment.query.filter_by(post_id=oldest.id).delete(synchronize_session=False)
-                PostAnalytics.query.filter_by(post_id=oldest.id).delete(synchronize_session=False)
-                ViewSession.query.filter_by(post_id=oldest.id).delete(synchronize_session=False)
-                ShareEvent.query.filter_by(post_id=oldest.id).delete(synchronize_session=False)
-                SummaryFeedback.query.filter_by(post_id=oldest.id).delete(synchronize_session=False)
-                db.session.delete(oldest)
+                raw_delete_by_post_id(Comment, oldest.id)
+                raw_delete_by_post_id(PostAnalytics, oldest.id)
+                raw_delete_by_post_id(ViewSession, oldest.id)
+                raw_delete_by_post_id(ShareEvent, oldest.id)
+                raw_delete_by_post_id(SummaryFeedback, oldest.id)
+                raw_delete_by_id(Post, oldest.id)
                 db.session.commit()
-            except SQLAlchemyError:
+            except SQLAlchemyError as e:
                 db.session.rollback()
+                print("AUTO DELETE ERROR:", str(e))
 
 
 def slugify(text):
