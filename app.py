@@ -2,8 +2,6 @@
 import re
 from datetime import date, datetime, timedelta
 from dotenv import load_dotenv
-from models import SummaryFeedback
-
 load_dotenv()
 
 from flask import (
@@ -15,7 +13,7 @@ from flask_login import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy import func
 
 import cloudinary
@@ -25,7 +23,10 @@ from docx import Document
 from striprtf.striprtf import rtf_to_text
 
 from config import Config
-from models import db, User, Post, Comment, PostAnalytics, ViewSession, ShareEvent
+from models import (
+    db, User, Post, Comment, PostAnalytics,
+    ViewSession, ShareEvent, SummaryFeedback
+)
 from chatbot import blog_chatbot_reply
 
 
@@ -398,10 +399,24 @@ def create_app():
     def delete_post(id):
         post = Post.query.get_or_404(id)
 
-        db.session.delete(post)
-        db.session.commit()
+        try:
+            # Delete child/dependent records first to avoid foreign-key errors.
+            Comment.query.filter_by(post_id=id).delete(synchronize_session=False)
+            PostAnalytics.query.filter_by(post_id=id).delete(synchronize_session=False)
+            ViewSession.query.filter_by(post_id=id).delete(synchronize_session=False)
+            ShareEvent.query.filter_by(post_id=id).delete(synchronize_session=False)
+            SummaryFeedback.query.filter_by(post_id=id).delete(synchronize_session=False)
 
-        flash("Post deleted", "success")
+            db.session.delete(post)
+            db.session.commit()
+
+            flash("Post deleted successfully", "success")
+
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            app.logger.exception("Delete failed for post id %s", id)
+            flash(f"Delete failed: {str(e)}", "error")
+
         return redirect(url_for("admin_dashboard"))
 
     @app.post("/chatbot")
@@ -522,8 +537,16 @@ def manage_db_size():
     if mb > MAX_DB_MB:
         oldest = Post.query.order_by(Post.created_at.asc()).first()
         if oldest:
-            db.session.delete(oldest)
-            db.session.commit()
+            try:
+                Comment.query.filter_by(post_id=oldest.id).delete(synchronize_session=False)
+                PostAnalytics.query.filter_by(post_id=oldest.id).delete(synchronize_session=False)
+                ViewSession.query.filter_by(post_id=oldest.id).delete(synchronize_session=False)
+                ShareEvent.query.filter_by(post_id=oldest.id).delete(synchronize_session=False)
+                SummaryFeedback.query.filter_by(post_id=oldest.id).delete(synchronize_session=False)
+                db.session.delete(oldest)
+                db.session.commit()
+            except SQLAlchemyError:
+                db.session.rollback()
 
 
 def slugify(text):
