@@ -1,7 +1,11 @@
-﻿import os
+import os
 import re
+import smtplib
+from email.message import EmailMessage
 from datetime import date, datetime, timedelta
 from dotenv import load_dotenv
+from models import SummaryFeedback
+
 load_dotenv()
 
 from flask import (
@@ -13,8 +17,8 @@ from flask_login import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from sqlalchemy import func, text, inspect
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func
 
 import cloudinary
 import cloudinary.uploader
@@ -23,7 +27,7 @@ from docx import Document
 from striprtf.striprtf import rtf_to_text
 
 from config import Config
-from models import db, User, Post, Comment, PostAnalytics, ViewSession, ShareEvent, SummaryFeedback
+from models import db, User, Post, Comment, PostAnalytics, ViewSession, ShareEvent, LinkClick
 from chatbot import blog_chatbot_reply
 
 
@@ -51,7 +55,6 @@ def create_app():
 
     with app.app_context():
         db.create_all()
-        ensure_runtime_schema()
         ensure_default_admin()
 
     # =========================
@@ -370,6 +373,58 @@ def create_app():
 
         return jsonify({"shares": analytics.shares})
 
+    @app.post("/track/link-click/<slug>")
+    def track_link_click(slug):
+        post = Post.query.filter_by(slug=slug).first_or_404()
+
+        data = request.get_json() or {}
+        clicked_url = (data.get("url") or "").strip()
+        link_text = (data.get("link_text") or "").strip()[:300]
+        device_id = (data.get("device_id") or "").strip()
+
+        if not clicked_url:
+            return jsonify({"error": "Missing clicked link URL"}), 400
+
+        click = LinkClick(
+            post_id=post.id,
+            clicked_url=clicked_url,
+            link_text=link_text,
+            device_id=device_id,
+            ip_address=request.headers.get("X-Forwarded-For", request.remote_addr),
+            user_agent=request.headers.get("User-Agent", "")[:500]
+        )
+        db.session.add(click)
+        db.session.commit()
+
+        total_clicks = LinkClick.query.filter_by(clicked_url=clicked_url).count()
+        unique_users = (
+            db.session.query(func.count(func.distinct(LinkClick.device_id)))
+            .filter(LinkClick.clicked_url == clicked_url)
+            .filter(LinkClick.device_id.isnot(None))
+            .filter(LinkClick.device_id != "")
+            .scalar() or 0
+        )
+        post_clicks = LinkClick.query.filter_by(post_id=post.id, clicked_url=clicked_url).count()
+
+        send_link_click_email(
+            app,
+            post=post,
+            clicked_url=clicked_url,
+            link_text=link_text,
+            device_id=device_id,
+            total_clicks=total_clicks,
+            unique_users=unique_users,
+            post_clicks=post_clicks
+        )
+
+        return jsonify({
+            "status": "ok",
+            "clicked_url": clicked_url,
+            "total_clicks": total_clicks,
+            "unique_users": unique_users,
+            "post_clicks": post_clicks
+        })
+
     # =========================
     # ANALYTICS DASHBOARD (FIX)
     # =========================
@@ -378,16 +433,32 @@ def create_app():
     def analytics_dashboard():
 
         data = db.session.query(
+            Post.id,
             Post.title,
-            func.coalesce(func.sum(PostAnalytics.views), 0),
-            func.coalesce(func.sum(PostAnalytics.likes), 0),
-            func.coalesce(func.sum(PostAnalytics.shares), 0),
-            func.avg(ViewSession.duration)
+            func.coalesce(PostAnalytics.views, 0),
+            func.coalesce(PostAnalytics.likes, 0),
+            func.coalesce(PostAnalytics.shares, 0),
+            func.avg(ViewSession.duration),
+            func.count(func.distinct(LinkClick.id)),
+            func.count(func.distinct(LinkClick.device_id))
         ).outerjoin(PostAnalytics, Post.id == PostAnalytics.post_id)\
             .outerjoin(ViewSession, Post.id == ViewSession.post_id)\
-            .group_by(Post.id).all()
+            .outerjoin(LinkClick, Post.id == LinkClick.post_id)\
+            .group_by(Post.id, PostAnalytics.views, PostAnalytics.likes, PostAnalytics.shares).all()
 
-        return render_template("admin_analytics.html", data=data)
+        link_clicks = db.session.query(
+            Post.title,
+            LinkClick.clicked_url,
+            LinkClick.link_text,
+            func.count(LinkClick.id).label("clicks"),
+            func.count(func.distinct(LinkClick.device_id)).label("unique_users"),
+            func.max(LinkClick.created_at).label("last_clicked")
+        ).join(Post, Post.id == LinkClick.post_id)\
+            .group_by(Post.title, LinkClick.clicked_url, LinkClick.link_text)\
+            .order_by(func.count(LinkClick.id).desc())\
+            .limit(100).all()
+
+        return render_template("admin_analytics.html", data=data, link_clicks=link_clicks)
 
     # =========================
     # DELETE POST
@@ -395,41 +466,12 @@ def create_app():
     @app.post("/admin/delete/<int:id>")
     @login_required
     def delete_post(id):
-        """
-        Deletes one blog post safely.
-
-        Important fix:
-        Your production PostgreSQL table view_sessions is missing the
-        device_id column, while the SQLAlchemy model contains device_id.
-        So this route must NOT load ViewSession ORM rows during deletion.
-        It uses raw SQL DELETE statements based only on post_id.
-        """
         post = Post.query.get_or_404(id)
 
-        try:
-            post_title = post.title
+        db.session.delete(post)
+        db.session.commit()
 
-            # Delete child/dependent records first.
-            # These raw SQL deletes avoid SELECTing missing ORM columns like
-            # view_sessions.device_id.
-            raw_delete_by_post_id(Comment, id)
-            raw_delete_by_post_id(PostAnalytics, id)
-            raw_delete_by_post_id(ViewSession, id)
-            raw_delete_by_post_id(ShareEvent, id)
-            raw_delete_by_post_id(SummaryFeedback, id)
-
-            # Delete the post itself using raw SQL too, so SQLAlchemy does not
-            # trigger relationship loading/cascade SELECT queries.
-            raw_delete_by_id(Post, id)
-
-            db.session.commit()
-            flash(f"Post deleted: {post_title}", "success")
-
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            print("DELETE ERROR:", str(e))
-            flash(f"Delete failed: {e}", "error")
-
+        flash("Post deleted", "success")
         return redirect(url_for("admin_dashboard"))
 
     @app.post("/chatbot")
@@ -470,63 +512,49 @@ def create_app():
 # UTILITIES
 # =========================
 
-def quoted_table_name(model):
-    """Return a safely quoted SQL table name for the current database."""
-    preparer = db.engine.dialect.identifier_preparer
-    return preparer.quote(model.__table__.name)
+def send_link_click_email(app, post, clicked_url, link_text, device_id, total_clicks, unique_users, post_clicks):
+    if not app.config.get("LINK_CLICK_EMAIL_ENABLED"):
+        return
 
+    recipient = app.config.get("LINK_CLICK_ALERT_EMAIL")
+    sender = app.config.get("MAIL_DEFAULT_SENDER")
+    username = app.config.get("MAIL_USERNAME")
+    password = app.config.get("MAIL_PASSWORD")
 
-def raw_delete_by_post_id(model, post_id):
-    """Delete rows from a model table using only post_id, without ORM loading."""
-    table_name = quoted_table_name(model)
-    db.session.execute(
-        text(f"DELETE FROM {table_name} WHERE post_id = :post_id"),
-        {"post_id": post_id}
-    )
+    if not recipient or not sender or not username or not password:
+        app.logger.warning("Link click email skipped: MAIL_USERNAME/MAIL_PASSWORD/LINK_CLICK_ALERT_EMAIL missing.")
+        return
 
+    subject = f"StatsDash link clicked: {post.title}"
+    body = f"""A user clicked a link on your blog.
 
-def raw_delete_by_id(model, row_id):
-    """Delete one row from a model table using only id, without ORM loading."""
-    table_name = quoted_table_name(model)
-    db.session.execute(
-        text(f"DELETE FROM {table_name} WHERE id = :id"),
-        {"id": row_id}
-    )
+Post: {post.title}
+Post slug: {post.slug}
+Clicked link: {clicked_url}
+Link text: {link_text or 'N/A'}
+Device/User ID: {device_id or 'N/A'}
 
+Clicks for this link in this post: {post_clicks}
+Total clicks for this link: {total_clicks}
+Unique users/devices for this link: {unique_users}
 
-def ensure_runtime_schema():
-    """
-    db.create_all() creates missing tables, but it does not add missing columns
-    to old production tables. This lightweight check adds columns your current
-    app.py uses but your existing database may not yet have.
-    """
+Time: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC
+"""
+
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    msg["From"] = sender
+    msg["To"] = recipient
+    msg.set_content(body)
+
     try:
-        inspector = inspect(db.engine)
-        dialect = db.engine.dialect.name
-
-        def add_column_if_missing(table_name, column_name, column_sql):
-            if not inspector.has_table(table_name):
-                return
-
-            existing_columns = {col["name"] for col in inspector.get_columns(table_name)}
-            if column_name in existing_columns:
-                return
-
-            if dialect == "postgresql":
-                sql = f'ALTER TABLE "{table_name}" ADD COLUMN IF NOT EXISTS {column_sql}'
-            else:
-                sql = f'ALTER TABLE {table_name} ADD COLUMN {column_sql}'
-
-            db.session.execute(text(sql))
-            db.session.commit()
-
-        add_column_if_missing("view_sessions", "device_id", "device_id VARCHAR(255)")
-        add_column_if_missing("share_events", "device_id", "device_id VARCHAR(255)")
-
-    except SQLAlchemyError as e:
-        db.session.rollback()
-        print("SCHEMA CHECK ERROR:", str(e))
-
+        with smtplib.SMTP(app.config.get("MAIL_SERVER"), app.config.get("MAIL_PORT")) as server:
+            if app.config.get("MAIL_USE_TLS"):
+                server.starttls()
+            server.login(username, password)
+            server.send_message(msg)
+    except Exception as exc:
+        app.logger.exception("Failed to send link click email: %s", exc)
 
 def wrap_lists(html):
     lines = html.split("\n")
@@ -608,17 +636,8 @@ def manage_db_size():
     if mb > MAX_DB_MB:
         oldest = Post.query.order_by(Post.created_at.asc()).first()
         if oldest:
-            try:
-                raw_delete_by_post_id(Comment, oldest.id)
-                raw_delete_by_post_id(PostAnalytics, oldest.id)
-                raw_delete_by_post_id(ViewSession, oldest.id)
-                raw_delete_by_post_id(ShareEvent, oldest.id)
-                raw_delete_by_post_id(SummaryFeedback, oldest.id)
-                raw_delete_by_id(Post, oldest.id)
-                db.session.commit()
-            except SQLAlchemyError as e:
-                db.session.rollback()
-                print("AUTO DELETE ERROR:", str(e))
+            db.session.delete(oldest)
+            db.session.commit()
 
 
 def slugify(text):

@@ -1,4 +1,4 @@
-﻿from flask_sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from datetime import datetime, date
 
@@ -52,6 +52,13 @@ class Post(db.Model):
 
     share_events = db.relationship(
         "ShareEvent",
+        backref="post",
+        lazy=True,
+        cascade="all, delete-orphan"
+    )
+
+    link_clicks = db.relationship(
+        "LinkClick",
         backref="post",
         lazy=True,
         cascade="all, delete-orphan"
@@ -152,6 +159,32 @@ class ShareEvent(db.Model):
         db.DateTime,
         default=datetime.utcnow,
         nullable=False
+    )
+
+
+class LinkClick(db.Model):
+    __tablename__ = "link_clicks"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    post_id = db.Column(
+        db.Integer,
+        db.ForeignKey("posts.id"),
+        nullable=False,
+        index=True
+    )
+
+    clicked_url = db.Column(db.Text, nullable=False)
+    link_text = db.Column(db.String(300), nullable=True)
+    device_id = db.Column(db.String(120), nullable=True, index=True)
+    ip_address = db.Column(db.String(80), nullable=True)
+    user_agent = db.Column(db.String(500), nullable=True)
+
+    created_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        nullable=False,
+        index=True
     )
 
 
