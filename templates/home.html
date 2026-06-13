@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block title %}JStCon{% endblock %}
 
 {% block content %}
@@ -18,7 +18,7 @@
     </div>
 
     {% if todays_post %}
-    <article class="card glass frost-card">
+    <article class="card glass frost-card readable-article-card">
 
         <h3 class="post-title">{{ todays_post.title }}</h3>
         <div class="meta">Published: {{ todays_post.publish_date }}</div>
@@ -27,7 +27,7 @@
         <img class="media" src="{{ todays_post.image_path }}" alt="Post image">
         {% endif %}
 
-        <div class="content">{{ todays_post.content | safe }}</div>
+        <div class="content post-readable-content">{{ todays_post.content | safe }}</div>
 
         <!-- ===== ACTIONS ===== -->
         <div class="post-actions">
@@ -81,7 +81,7 @@
 
     <div class="grid">
         {% for p in recent_posts %}
-        <a class="card glass hover-card" href="{{ url_for('post_detail', slug=p.slug) }}">
+        <a class="card glass hover-card readable-post-card" href="{{ url_for('post_detail', slug=p.slug) }}">
             <h4>{{ p.title }}</h4>
 
             {% if p.image_path %}

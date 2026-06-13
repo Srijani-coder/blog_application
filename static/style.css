@@ -1499,3 +1499,383 @@ p {
         font-size: 11px;
     }
 }
+/* =========================================================
+   READABILITY UPGRADE: HIGH-CONTRAST POST BOXES
+   Added for better phone + desktop reading comfort.
+   ========================================================= */
+
+:root {
+    --read-bg: #ffffff;
+    --read-text: #111111;
+    --read-muted: #555555;
+    --read-border: #000000;
+    --read-soft: #f6f6f6;
+    --read-link: #000000;
+}
+
+/* Keep the outer site atmospheric, but make actual reading boxes clear. */
+.readable-post-card,
+.readable-article-card,
+.posts-list .post-card,
+.empty-state.readable-post-card {
+    background: var(--read-bg) !important;
+    color: var(--read-text) !important;
+    border: 2px solid var(--read-border) !important;
+    border-radius: 18px !important;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    animation: none !important;
+    overflow: visible;
+}
+
+.readable-post-card::before,
+.readable-article-card::before,
+.posts-list .post-card::before {
+    display: none !important;
+}
+
+/* Post listing layout */
+.posts-index-section {
+    width: 100%;
+}
+
+.posts-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 22px;
+}
+
+.post-card.readable-post-card {
+    padding: 24px 26px !important;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.post-card.readable-post-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 18px 46px rgba(0, 0, 0, 0.34) !important;
+}
+
+.post-card-title,
+.post-card-title a,
+.readable-article-card .post-title {
+    color: #000000 !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.02em;
+    text-decoration: none;
+}
+
+.post-card-title {
+    margin-bottom: 6px;
+    line-height: 1.22;
+}
+
+.post-card-title a:hover,
+.read-more-link:hover {
+    text-decoration: underline;
+}
+
+.post-card-meta,
+.readable-article-card .meta {
+    color: var(--read-muted) !important;
+    opacity: 1 !important;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.post-card-excerpt {
+    color: #222222;
+    font-size: 16px;
+    line-height: 1.75;
+    margin-top: 12px;
+}
+
+.read-more-link {
+    width: fit-content;
+    color: var(--read-link) !important;
+    background: #ffffff;
+    border: 2px solid #000000;
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-weight: 800;
+    text-decoration: none;
+    margin-top: 8px;
+}
+
+.read-more-link:hover {
+    background: #000000;
+    color: #ffffff !important;
+}
+
+.post-card-img,
+.readable-article-card .media {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    border: 2px solid #000000;
+    border-radius: 14px;
+    box-shadow: none;
+    object-fit: cover;
+}
+
+/* Full article page: white paper reading panel */
+.readable-article-card {
+    max-width: 880px;
+    width: 100%;
+    margin: 0 auto 28px auto;
+    padding: 34px 38px !important;
+}
+
+.post-readable-content,
+.readable-article-card .content {
+    background: #ffffff !important;
+    color: #111111 !important;
+    border: 0 !important;
+    border-top: 2px solid #000000 !important;
+    border-radius: 0 !important;
+    padding: 22px 0 0 0 !important;
+    margin-top: 18px;
+    font-style: normal !important;
+    text-shadow: none !important;
+    font-size: 18px;
+    line-height: 1.85;
+    letter-spacing: 0;
+    word-break: normal;
+    overflow-wrap: anywhere;
+}
+
+.post-readable-content p,
+.readable-article-card .content p {
+    color: #111111 !important;
+    margin: 0 0 18px 0 !important;
+}
+
+.post-readable-content p:first-child::first-letter,
+.readable-article-card .content p:first-child::first-letter {
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    color: inherit !important;
+    margin-right: 0 !important;
+}
+
+.post-readable-content h1,
+.post-readable-content h2,
+.post-readable-content h3,
+.post-readable-content h4,
+.readable-article-card .content h1,
+.readable-article-card .content h2,
+.readable-article-card .content h3,
+.readable-article-card .content h4 {
+    color: #000000 !important;
+    margin: 26px 0 12px 0;
+    line-height: 1.25;
+    font-weight: 850;
+}
+
+.post-readable-content a,
+.readable-article-card .content a {
+    color: #000000 !important;
+    font-weight: 800;
+    text-decoration: underline;
+}
+
+.post-readable-content ul,
+.post-readable-content ol,
+.readable-article-card .content ul,
+.readable-article-card .content ol {
+    padding-left: 24px;
+    margin: 14px 0 18px 0;
+}
+
+.post-readable-content li,
+.readable-article-card .content li {
+    margin-bottom: 8px;
+}
+
+.post-readable-content blockquote,
+.readable-article-card .content blockquote {
+    margin: 18px 0;
+    padding: 14px 18px;
+    background: var(--read-soft);
+    border-left: 5px solid #000000;
+    color: #111111;
+}
+
+.post-readable-content table,
+.readable-article-card .content table {
+    width: 100%;
+    border-collapse: collapse;
+    display: block;
+    overflow-x: auto;
+    margin: 18px 0;
+}
+
+.post-readable-content th,
+.post-readable-content td,
+.readable-article-card .content th,
+.readable-article-card .content td {
+    border: 1px solid #000000;
+    color: #111111;
+    padding: 10px;
+    background: #ffffff;
+}
+
+/* Comments inside readable article */
+.readable-article-card .comments {
+    border-top: 2px solid #000000;
+    margin-top: 30px;
+    padding-top: 20px;
+    color: #111111;
+}
+
+.readable-article-card .comments-title,
+.readable-article-card .comment-name,
+.readable-article-card .comment-text,
+.readable-article-card .comment-time {
+    color: #111111 !important;
+    opacity: 1 !important;
+}
+
+.readable-article-card .comment {
+    background: #f7f7f7 !important;
+    border: 1px solid #000000;
+}
+
+.readable-article-card input,
+.readable-article-card textarea {
+    background: #ffffff !important;
+    color: #111111 !important;
+    border: 2px solid #000000 !important;
+}
+
+.readable-article-card input::placeholder,
+.readable-article-card textarea::placeholder {
+    color: #555555;
+}
+
+.readable-article-card .btn,
+.readable-article-card .share-btn,
+.readable-article-card #likeBtn {
+    background: #000000 !important;
+    color: #ffffff !important;
+    border: 2px solid #000000 !important;
+    box-shadow: none !important;
+}
+
+.readable-article-card .btn.ghost,
+.readable-article-card .load-more {
+    background: #ffffff !important;
+    color: #000000 !important;
+}
+
+.readable-article-card .share-count {
+    color: #111111;
+    opacity: 1;
+    font-weight: 700;
+}
+
+/* Desktop reading width */
+@media (min-width: 900px) {
+    .posts-list {
+        gap: 26px;
+    }
+
+    .post-card.readable-post-card {
+        max-width: 880px;
+    }
+}
+
+/* Phone readability */
+@media (max-width: 768px) {
+    body {
+        line-height: 1.65;
+    }
+
+    .topbar {
+        margin: 8px;
+        padding: 10px;
+    }
+
+    .shell {
+        padding: 8px !important;
+    }
+
+    .main {
+        padding: 4px !important;
+        max-width: 100% !important;
+    }
+
+    .page-title {
+        color: #ffffff;
+        font-size: 24px !important;
+        text-align: left !important;
+        margin: 8px 4px 16px 4px;
+    }
+
+    .post-card.readable-post-card,
+    .readable-article-card,
+    .empty-state.readable-post-card {
+        border-radius: 14px !important;
+        padding: 18px 16px !important;
+        margin-bottom: 16px;
+    }
+
+    .post-card-title a,
+    .readable-article-card .post-title {
+        font-size: 22px !important;
+        line-height: 1.25 !important;
+    }
+
+    .post-card-meta,
+    .readable-article-card .meta {
+        font-size: 13px !important;
+    }
+
+    .post-card-excerpt {
+        font-size: 15.5px;
+        line-height: 1.75;
+    }
+
+    .post-readable-content,
+    .readable-article-card .content {
+        font-size: 16.5px !important;
+        line-height: 1.85 !important;
+        padding-top: 18px !important;
+    }
+
+    .post-readable-content p,
+    .readable-article-card .content p {
+        margin-bottom: 16px !important;
+    }
+
+    .read-more-link {
+        display: block;
+        width: 100%;
+        text-align: center;
+        padding: 10px 14px;
+    }
+
+    .post-card-img,
+    .readable-article-card .media {
+        border-radius: 12px;
+    }
+}
+
+@media (max-width: 420px) {
+    .post-card.readable-post-card,
+    .readable-article-card,
+    .empty-state.readable-post-card {
+        padding: 16px 14px !important;
+    }
+
+    .post-card-title a,
+    .readable-article-card .post-title {
+        font-size: 20px !important;
+    }
+
+    .post-readable-content,
+    .readable-article-card .content {
+        font-size: 16px !important;
+    }
+}

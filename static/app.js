@@ -1,4 +1,4 @@
-function getDeviceId() {
+﻿function getDeviceId() {
     let id = localStorage.getItem("device_id");
 
     if (!id) {
@@ -79,39 +79,6 @@ document.addEventListener("DOMContentLoaded", () => {
             if (document.visibilityState === "hidden") {
                 sendTime();
             }
-        });
-
-
-        // -----------------------------
-        // TRACK CLICKS ON LINKS INSIDE ARTICLE CONTENT
-        // -----------------------------
-        const articleLinks = document.querySelectorAll(".content a[href]");
-
-        articleLinks.forEach(link => {
-            link.addEventListener("click", () => {
-                const clickedUrl = link.href;
-                const linkText = (link.innerText || link.textContent || "").trim();
-
-                const payload = JSON.stringify({
-                    url: clickedUrl,
-                    link_text: linkText,
-                    device_id: getDeviceId()
-                });
-
-                if (navigator.sendBeacon) {
-                    const blob = new Blob([payload], { type: "application/json" });
-                    navigator.sendBeacon(`/track/link-click/${slug}`, blob);
-                } else {
-                    fetch(`/track/link-click/${slug}`, {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: payload,
-                        keepalive: true
-                    }).catch(err => console.error("Link click tracking error:", err));
-                }
-            });
         });
 
         // -----------------------------

@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block title %}Admin • Analytics{% endblock %}
 
 {% block content %}
@@ -14,10 +14,9 @@
 <!-- SUMMARY CARDS -->
 <div class="analytics-cards">
 
-    {% set total_views = data | sum(attribute=2) %}
-    {% set total_likes = data | sum(attribute=3) %}
-    {% set total_shares = data | sum(attribute=4) %}
-    {% set total_link_clicks = data | sum(attribute=6) %}
+    {% set total_views = data | sum(attribute=1) %}
+    {% set total_likes = data | sum(attribute=2) %}
+    {% set total_shares = data | sum(attribute=3) %}
 
     <div class="card glass stat">
         <div class="stat-title">Total Views</div>
@@ -32,11 +31,6 @@
     <div class="card glass stat">
         <div class="stat-title">Total Shares</div>
         <div class="stat-value">{{ total_shares }}</div>
-    </div>
-
-    <div class="card glass stat">
-        <div class="stat-title">Total Link Clicks</div>
-        <div class="stat-value">{{ total_link_clicks }}</div>
     </div>
 
 </div>
@@ -54,63 +48,23 @@
                     <th>Likes</th>
                     <th>Shares</th>
                     <th>Avg Time (sec)</th>
-                    <th>Link Clicks</th>
-                    <th>Unique Link Users</th>
                 </tr>
             </thead>
 
             <tbody>
                 {% for row in data %}
                 <tr>
+                    <td>{{ row[0] }}</td>
                     <td>{{ row[1] }}</td>
                     <td>{{ row[2] }}</td>
                     <td>{{ row[3] }}</td>
-                    <td>{{ row[4] }}</td>
                     <td>
-                        {% if row[5] %}
-                        {{ "%.1f"|format(row[5]) }}
+                        {% if row[4] %}
+                        {{ "%.1f"|format(row[4]) }}
                         {% else %}
                         0
                         {% endif %}
                     </td>
-                    <td>{{ row[6] }}</td>
-                    <td>{{ row[7] }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<!-- LINK CLICK DETAILS -->
-<div class="panel glass">
-    <h3>Clicked Links</h3>
-
-    <div class="table-wrap">
-        <table class="analytics-table">
-            <thead>
-                <tr>
-                    <th>Post</th>
-                    <th>Clicked Link</th>
-                    <th>Link Text</th>
-                    <th>Clicks</th>
-                    <th>Unique Users</th>
-                    <th>Last Clicked</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in link_clicks %}
-                <tr>
-                    <td>{{ row[0] }}</td>
-                    <td><a href="{{ row[1] }}" target="_blank" rel="noopener">{{ row[1] }}</a></td>
-                    <td>{{ row[2] or "N/A" }}</td>
-                    <td>{{ row[3] }}</td>
-                    <td>{{ row[4] }}</td>
-                    <td>{{ row[5].strftime("%Y-%m-%d %H:%M UTC") if row[5] else "N/A" }}</td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="6">No link clicks recorded yet.</td>
                 </tr>
                 {% endfor %}
             </tbody>

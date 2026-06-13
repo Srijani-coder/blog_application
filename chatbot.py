@@ -153,7 +153,7 @@ def blog_chatbot_reply(user_message: str) -> str:
 
     if not msg:
         return (
-            " Hi! Ask for the latest article, "
+            "✨ Hi! Ask for the latest article, "
             "a quick blog explanation, or help finding posts."
         )
 
@@ -166,7 +166,7 @@ def blog_chatbot_reply(user_message: str) -> str:
         "all posts"
     ]):
         return (
-            ' Explore all blog articles here:<br><br>'
+            '📚 Explore all blog articles here:<br><br>'
             '<a href="/posts">Open Posts Page</a>'
         )
 
@@ -274,7 +274,7 @@ Available posts:
 
     except Exception:
         return (
-            " Try asking:<br><br>"
+            "✨ Try asking:<br><br>"
             "• latest blog article<br>"
             "• Help me understand the blog titled ...<br>"
             '• <a href="/posts">Browse Posts</a>'

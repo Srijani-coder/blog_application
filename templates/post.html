@@ -1,9 +1,9 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block title %}{{ post.title }} • StatsDash{% endblock %}
 
 {% block content %}
 <section class="section">
-    <article class="card glass">
+    <article class="card glass readable-article-card">
 
         <!-- TITLE -->
         <div>
@@ -24,7 +24,7 @@
         {% endif %}
 
         <!-- CONTENT -->
-        <div class="content">{{ post.content | safe }}</div>
+        <div class="content post-readable-content">{{ post.content | safe }}</div>
 
         <!-- ========================= -->
         <!-- NEW: POST ACTIONS (LIKE / SHARE) -->

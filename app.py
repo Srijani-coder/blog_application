@@ -1,7 +1,5 @@
-import os
+﻿import os
 import re
-import smtplib
-from email.message import EmailMessage
 from datetime import date, datetime, timedelta
 from dotenv import load_dotenv
 from models import SummaryFeedback
@@ -27,7 +25,7 @@ from docx import Document
 from striprtf.striprtf import rtf_to_text
 
 from config import Config
-from models import db, User, Post, Comment, PostAnalytics, ViewSession, ShareEvent, LinkClick
+from models import db, User, Post, Comment, PostAnalytics, ViewSession, ShareEvent
 from chatbot import blog_chatbot_reply
 
 
@@ -373,58 +371,6 @@ def create_app():
 
         return jsonify({"shares": analytics.shares})
 
-    @app.post("/track/link-click/<slug>")
-    def track_link_click(slug):
-        post = Post.query.filter_by(slug=slug).first_or_404()
-
-        data = request.get_json() or {}
-        clicked_url = (data.get("url") or "").strip()
-        link_text = (data.get("link_text") or "").strip()[:300]
-        device_id = (data.get("device_id") or "").strip()
-
-        if not clicked_url:
-            return jsonify({"error": "Missing clicked link URL"}), 400
-
-        click = LinkClick(
-            post_id=post.id,
-            clicked_url=clicked_url,
-            link_text=link_text,
-            device_id=device_id,
-            ip_address=request.headers.get("X-Forwarded-For", request.remote_addr),
-            user_agent=request.headers.get("User-Agent", "")[:500]
-        )
-        db.session.add(click)
-        db.session.commit()
-
-        total_clicks = LinkClick.query.filter_by(clicked_url=clicked_url).count()
-        unique_users = (
-            db.session.query(func.count(func.distinct(LinkClick.device_id)))
-            .filter(LinkClick.clicked_url == clicked_url)
-            .filter(LinkClick.device_id.isnot(None))
-            .filter(LinkClick.device_id != "")
-            .scalar() or 0
-        )
-        post_clicks = LinkClick.query.filter_by(post_id=post.id, clicked_url=clicked_url).count()
-
-        send_link_click_email(
-            app,
-            post=post,
-            clicked_url=clicked_url,
-            link_text=link_text,
-            device_id=device_id,
-            total_clicks=total_clicks,
-            unique_users=unique_users,
-            post_clicks=post_clicks
-        )
-
-        return jsonify({
-            "status": "ok",
-            "clicked_url": clicked_url,
-            "total_clicks": total_clicks,
-            "unique_users": unique_users,
-            "post_clicks": post_clicks
-        })
-
     # =========================
     # ANALYTICS DASHBOARD (FIX)
     # =========================
@@ -433,32 +379,16 @@ def create_app():
     def analytics_dashboard():
 
         data = db.session.query(
-            Post.id,
             Post.title,
-            func.coalesce(PostAnalytics.views, 0),
-            func.coalesce(PostAnalytics.likes, 0),
-            func.coalesce(PostAnalytics.shares, 0),
-            func.avg(ViewSession.duration),
-            func.count(func.distinct(LinkClick.id)),
-            func.count(func.distinct(LinkClick.device_id))
+            func.coalesce(func.sum(PostAnalytics.views), 0),
+            func.coalesce(func.sum(PostAnalytics.likes), 0),
+            func.coalesce(func.sum(PostAnalytics.shares), 0),
+            func.avg(ViewSession.duration)
         ).outerjoin(PostAnalytics, Post.id == PostAnalytics.post_id)\
             .outerjoin(ViewSession, Post.id == ViewSession.post_id)\
-            .outerjoin(LinkClick, Post.id == LinkClick.post_id)\
-            .group_by(Post.id, PostAnalytics.views, PostAnalytics.likes, PostAnalytics.shares).all()
+            .group_by(Post.id).all()
 
-        link_clicks = db.session.query(
-            Post.title,
-            LinkClick.clicked_url,
-            LinkClick.link_text,
-            func.count(LinkClick.id).label("clicks"),
-            func.count(func.distinct(LinkClick.device_id)).label("unique_users"),
-            func.max(LinkClick.created_at).label("last_clicked")
-        ).join(Post, Post.id == LinkClick.post_id)\
-            .group_by(Post.title, LinkClick.clicked_url, LinkClick.link_text)\
-            .order_by(func.count(LinkClick.id).desc())\
-            .limit(100).all()
-
-        return render_template("admin_analytics.html", data=data, link_clicks=link_clicks)
+        return render_template("admin_analytics.html", data=data)
 
     # =========================
     # DELETE POST
@@ -511,50 +441,6 @@ def create_app():
 # =========================
 # UTILITIES
 # =========================
-
-def send_link_click_email(app, post, clicked_url, link_text, device_id, total_clicks, unique_users, post_clicks):
-    if not app.config.get("LINK_CLICK_EMAIL_ENABLED"):
-        return
-
-    recipient = app.config.get("LINK_CLICK_ALERT_EMAIL")
-    sender = app.config.get("MAIL_DEFAULT_SENDER")
-    username = app.config.get("MAIL_USERNAME")
-    password = app.config.get("MAIL_PASSWORD")
-
-    if not recipient or not sender or not username or not password:
-        app.logger.warning("Link click email skipped: MAIL_USERNAME/MAIL_PASSWORD/LINK_CLICK_ALERT_EMAIL missing.")
-        return
-
-    subject = f"StatsDash link clicked: {post.title}"
-    body = f"""A user clicked a link on your blog.
-
-Post: {post.title}
-Post slug: {post.slug}
-Clicked link: {clicked_url}
-Link text: {link_text or 'N/A'}
-Device/User ID: {device_id or 'N/A'}
-
-Clicks for this link in this post: {post_clicks}
-Total clicks for this link: {total_clicks}
-Unique users/devices for this link: {unique_users}
-
-Time: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC
-"""
-
-    msg = EmailMessage()
-    msg["Subject"] = subject
-    msg["From"] = sender
-    msg["To"] = recipient
-    msg.set_content(body)
-
-    try:
-        with smtplib.SMTP(app.config.get("MAIL_SERVER"), app.config.get("MAIL_PORT")) as server:
-            if app.config.get("MAIL_USE_TLS"):
-                server.starttls()
-            server.login(username, password)
-            server.send_message(msg)
-    except Exception as exc:
-        app.logger.exception("Failed to send link click email: %s", exc)
 
 def wrap_lists(html):
     lines = html.split("\n")

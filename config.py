@@ -60,16 +60,3 @@ class Config:
     # =========================
     POSTS_PER_PAGE = 10
     COMMENTS_PAGE_SIZE = 10
-
-    # =========================
-    # EMAIL ALERTS FOR LINK CLICKS
-    # =========================
-    MAIL_SERVER = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
-    MAIL_PORT = int(os.environ.get("MAIL_PORT", 587))
-    MAIL_USE_TLS = os.environ.get("MAIL_USE_TLS", "true").lower() == "true"
-    MAIL_USERNAME = os.environ.get("MAIL_USERNAME")
-    MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD")
-    MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER") or MAIL_USERNAME
-    LINK_CLICK_ALERT_EMAIL = os.environ.get("LINK_CLICK_ALERT_EMAIL") or MAIL_USERNAME
-    LINK_CLICK_EMAIL_ENABLED = os.environ.get("LINK_CLICK_EMAIL_ENABLED", "true").lower() == "true"
-
