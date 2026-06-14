@@ -1,4 +1,4 @@
-﻿import os
+import os
 import re
 from datetime import date, datetime, timedelta
 from dotenv import load_dotenv
@@ -16,7 +16,7 @@ from flask_login import (
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import func
+from sqlalchemy import func, text, inspect
 
 import cloudinary
 import cloudinary.uploader
@@ -53,6 +53,7 @@ def create_app():
 
     with app.app_context():
         db.create_all()
+        ensure_tracking_schema()
         ensure_default_admin()
 
     # =========================
@@ -124,9 +125,16 @@ def create_app():
             .all()
         )
 
+        analytics = PostAnalytics.query.filter_by(post_id=post.id).first()
+        if not analytics:
+            analytics = PostAnalytics(post_id=post.id)
+            db.session.add(analytics)
+            db.session.commit()
+
         return render_template(
             "post.html",
             post=post,
+            analytics=analytics,
             initial_comments=initial_comments,
             comment_count=comment_count,
             comments_page_size=COMMENTS_PAGE_SIZE
@@ -274,43 +282,66 @@ def create_app():
         return send_file(path, as_attachment=True)
 
     # =========================
-    # ANALYTICS
+    # ANALYTICS / TRACKING
     # =========================
+    def get_or_create_analytics(post_id):
+        analytics = PostAnalytics.query.filter_by(post_id=post_id).first()
+        if not analytics:
+            analytics = PostAnalytics(post_id=post_id)
+            db.session.add(analytics)
+            db.session.flush()
+        return analytics
+
+    def request_json():
+        return request.get_json(silent=True) or {}
+
     @app.post("/track/view/<slug>")
     def track_view(slug):
         post = Post.query.filter_by(slug=slug).first_or_404()
+        data = request_json()
+        device_id = (data.get("device_id") or request.remote_addr or "unknown")[:120]
 
-        data = request.get_json()
-        device_id = data.get("device_id")
+        analytics = get_or_create_analytics(post.id)
 
-        analytics = PostAnalytics.query.filter_by(post_id=post.id).first()
-        if not analytics:
-            analytics = PostAnalytics(post_id=post.id)
-            db.session.add(analytics)
+        # Count one view per device per calendar day, but still create a session
+        # every time the user opens the post so reading time can be averaged.
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        existing_today = ViewSession.query.filter(
+            ViewSession.post_id == post.id,
+            ViewSession.device_id == device_id,
+            ViewSession.started_at >= today_start
+        ).first()
 
-        # ✅ Unique view per device per day
-        existing = ViewSession.query.filter_by(
-            post_id=post.id,
-            device_id=device_id
-            ).first()
-
-        if not existing:
+        if not existing_today:
             analytics.views += 1
 
-        session = ViewSession(post_id=post.id, device_id=device_id)
-
+        session = ViewSession(post_id=post.id, device_id=device_id, duration=0)
         db.session.add(session)
         db.session.commit()
 
-        return jsonify({"session_id": session.id})
+        return jsonify({
+            "session_id": session.id,
+            "views": analytics.views,
+            "likes": analytics.likes,
+            "shares": analytics.shares
+        })
 
     @app.post("/track/time")
     def track_time():
-        data = request.get_json()
+        data = request_json()
+        session_id = data.get("session_id")
+        duration = data.get("duration", 0)
 
-        session = ViewSession.query.get(data.get("session_id"))
+        try:
+            duration = max(0, min(float(duration), 24 * 60 * 60))
+        except (TypeError, ValueError):
+            duration = 0
+
+        session = db.session.get(ViewSession, session_id) if session_id else None
         if session:
-            session.duration = data.get("duration", 0)
+            # Keep the largest duration sent for this session, because the browser
+            # may send updates several times before leaving the page.
+            session.duration = max(session.duration or 0, duration)
             db.session.commit()
 
         return jsonify({"status": "ok"})
@@ -318,47 +349,62 @@ def create_app():
     @app.post("/track/like/<slug>")
     def like_post(slug):
         post = Post.query.filter_by(slug=slug).first_or_404()
+        data = request_json()
+        device_id = (data.get("device_id") or request.remote_addr or "unknown")[:120]
 
-        data = request.get_json()
-        device_id = data.get("device_id")
-
-        analytics = PostAnalytics.query.filter_by(post_id=post.id).first()
-        if not analytics:
-            analytics = PostAnalytics(post_id=post.id)
-            db.session.add(analytics)
+        analytics = get_or_create_analytics(post.id)
 
         existing = ShareEvent.query.filter_by(
             post_id=post.id,
             platform="like",
             device_id=device_id
-           ).first()
+        ).first()
+
+        liked = False
         if not existing:
             analytics.likes += 1
-
+            liked = True
             db.session.add(ShareEvent(
                 post_id=post.id,
                 platform="like",
                 device_id=device_id
             ))
-        db.session.commit()
 
-        return jsonify({"likes": analytics.likes})
+        db.session.commit()
+        return jsonify({"likes": analytics.likes, "liked": liked})
+
+    @app.get("/track/stats/<slug>")
+    def post_stats(slug):
+        post = Post.query.filter_by(slug=slug).first_or_404()
+        analytics = get_or_create_analytics(post.id)
+
+        avg_time = db.session.query(func.avg(ViewSession.duration)).filter(
+            ViewSession.post_id == post.id,
+            ViewSession.duration.isnot(None),
+            ViewSession.duration > 0
+        ).scalar() or 0
+
+        unique_readers = db.session.query(func.count(func.distinct(ViewSession.device_id))).filter(
+            ViewSession.post_id == post.id
+        ).scalar() or 0
+
+        db.session.commit()
+        return jsonify({
+            "views": analytics.views,
+            "likes": analytics.likes,
+            "shares": analytics.shares,
+            "avg_time_seconds": round(float(avg_time), 1),
+            "unique_readers": unique_readers
+        })
 
     @app.post("/track/share/<slug>")
-
     def share_post(slug):
         post = Post.query.filter_by(slug=slug).first_or_404()
+        data = request_json()
+        platform = (data.get("platform") or "unknown")[:50]
+        device_id = (data.get("device_id") or request.remote_addr or "unknown")[:120]
 
-        data = request.get_json()
-        platform = data.get("platform")
-        device_id = data.get("device_id")
-
-        analytics = PostAnalytics.query.filter_by(post_id=post.id).first()
-
-        if not analytics:
-            analytics = PostAnalytics(post_id=post.id)
-            db.session.add(analytics)
-        
+        analytics = get_or_create_analytics(post.id)
         analytics.shares += 1
 
         db.session.add(ShareEvent(
@@ -366,27 +412,38 @@ def create_app():
             platform=platform,
             device_id=device_id
         ))
-
         db.session.commit()
 
         return jsonify({"shares": analytics.shares})
 
     # =========================
-    # ANALYTICS DASHBOARD (FIX)
+    # ANALYTICS DASHBOARD
     # =========================
     @app.get("/admin/analytics")
     @login_required
     def analytics_dashboard():
+        posts = Post.query.order_by(Post.publish_date.desc()).all()
+        data = []
 
-        data = db.session.query(
-            Post.title,
-            func.coalesce(func.sum(PostAnalytics.views), 0),
-            func.coalesce(func.sum(PostAnalytics.likes), 0),
-            func.coalesce(func.sum(PostAnalytics.shares), 0),
-            func.avg(ViewSession.duration)
-        ).outerjoin(PostAnalytics, Post.id == PostAnalytics.post_id)\
-            .outerjoin(ViewSession, Post.id == ViewSession.post_id)\
-            .group_by(Post.id).all()
+        for post in posts:
+            analytics = PostAnalytics.query.filter_by(post_id=post.id).first()
+            avg_time = db.session.query(func.avg(ViewSession.duration)).filter(
+                ViewSession.post_id == post.id,
+                ViewSession.duration.isnot(None),
+                ViewSession.duration > 0
+            ).scalar() or 0
+            unique_readers = db.session.query(func.count(func.distinct(ViewSession.device_id))).filter(
+                ViewSession.post_id == post.id
+            ).scalar() or 0
+
+            data.append((
+                post.title,
+                analytics.views if analytics else 0,
+                analytics.likes if analytics else 0,
+                analytics.shares if analytics else 0,
+                float(avg_time),
+                unique_readers
+            ))
 
         return render_template("admin_analytics.html", data=data)
 
@@ -541,6 +598,36 @@ def make_unique_slug(title):
 
     return slug
 
+
+
+def ensure_tracking_schema():
+    """Add missing tracking columns for existing deployed databases.
+
+    db.create_all() creates new tables but does not alter old tables.
+    This keeps older Render/Postgres or local SQLite databases compatible
+    with the new per-device reading-time and like tracking code.
+    """
+    inspector = inspect(db.engine)
+
+    if "view_sessions" in inspector.get_table_names():
+        cols = {col["name"] for col in inspector.get_columns("view_sessions")}
+        dialect = db.engine.dialect.name
+
+        if "device_id" not in cols:
+            db.session.execute(text("ALTER TABLE view_sessions ADD COLUMN device_id VARCHAR(120)"))
+
+        if "duration" not in cols:
+            col_type = "DOUBLE PRECISION" if dialect == "postgresql" else "FLOAT"
+            db.session.execute(text(f"ALTER TABLE view_sessions ADD COLUMN duration {col_type}"))
+
+        db.session.commit()
+
+    if "post_analytics" in inspector.get_table_names():
+        cols = {col["name"] for col in inspector.get_columns("post_analytics")}
+        for col in ("views", "likes", "shares"):
+            if col not in cols:
+                db.session.execute(text(f"ALTER TABLE post_analytics ADD COLUMN {col} INTEGER DEFAULT 0 NOT NULL"))
+        db.session.commit()
 
 def ensure_default_admin():
     username = os.getenv("ADMIN_USERNAME", "admin")

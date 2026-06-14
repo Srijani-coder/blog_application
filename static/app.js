@@ -1,4 +1,4 @@
-﻿function getDeviceId() {
+function getDeviceId() {
     let id = localStorage.getItem("device_id");
 
     if (!id) {
@@ -9,10 +9,18 @@
     return id;
 }
 
+function formatSeconds(seconds) {
+    seconds = Number(seconds || 0);
+    if (seconds < 60) return `${Math.round(seconds)} sec`;
+    const minutes = Math.floor(seconds / 60);
+    const remaining = Math.round(seconds % 60);
+    return remaining ? `${minutes} min ${remaining} sec` : `${minutes} min`;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
 
     // =============================
-    // EXISTING TRENDING TOGGLE (UNCHANGED)
+    // TRENDING TOGGLE
     // =============================
     const btn = document.getElementById("toggleTrending");
     const grid = document.getElementById("postGrid");
@@ -20,134 +28,119 @@ document.addEventListener("DOMContentLoaded", () => {
     if (btn && grid) {
         btn.addEventListener("click", () => {
             grid.classList.toggle("trending");
-
-            if (grid.classList.contains("trending")) {
-                document.body.style.filter = "saturate(1.1)";
-            } else {
-                document.body.style.filter = "none";
-            }
+            document.body.style.filter = grid.classList.contains("trending") ? "saturate(1.1)" : "none";
         });
     }
 
     // =============================
-    // POST PAGE LOGIC (FIXED)
+    // POST PAGE ANALYTICS
     // =============================
-
-    const postContainer = document.querySelector(".comments");
+    const postContainer = document.querySelector(".comments[data-slug]");
 
     if (postContainer) {
-
         const slug = postContainer.dataset.slug;
-
         let sessionId = null;
-        let startTime = Date.now();
+        const startTime = Date.now();
+        let maxSentDuration = 0;
 
-        // -----------------------------
-        // TRACK VIEW ✅ FIXED
-        // -----------------------------
+        function updateStatText(data) {
+            const likeCount = document.getElementById("likeCount");
+            const inlineLikeCount = document.getElementById("inlineLikeCount");
+            const shareCount = document.getElementById("shareCount");
+            const viewCount = document.getElementById("viewCount");
+            const avgTimeCount = document.getElementById("avgTimeCount");
+
+            if (likeCount && data.likes !== undefined) likeCount.innerText = data.likes;
+            if (inlineLikeCount && data.likes !== undefined) inlineLikeCount.innerText = data.likes;
+            if (shareCount && data.shares !== undefined) shareCount.innerText = data.shares;
+            if (viewCount && data.views !== undefined) viewCount.innerText = data.views;
+            if (avgTimeCount && data.avg_time_seconds !== undefined) {
+                avgTimeCount.innerText = formatSeconds(data.avg_time_seconds);
+            }
+        }
+
         fetch(`/track/view/${slug}`, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                device_id: getDeviceId()
-            })
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ device_id: getDeviceId() })
         })
             .then(res => res.json())
             .then(data => {
-                sessionId = data.session_id; // 🔥 CRITICAL FIX
+                sessionId = data.session_id;
+                updateStatText(data);
+                return fetch(`/track/stats/${slug}`);
             })
+            .then(res => res ? res.json() : null)
+            .then(data => { if (data) updateStatText(data); })
             .catch(err => console.error("View tracking error:", err));
 
-        // -----------------------------
-        // TRACK TIME SPENT ✅ IMPROVED
-        // -----------------------------
-        function sendTime() {
+        function sendTime(useBeacon = false) {
             if (!sessionId) return;
 
             const duration = Math.floor((Date.now() - startTime) / 1000);
+            if (duration <= maxSentDuration) return;
+            maxSentDuration = duration;
 
-            navigator.sendBeacon("/track/time", JSON.stringify({
+            const payload = JSON.stringify({
                 session_id: sessionId,
                 duration: duration
-            }));
+            });
+
+            if (useBeacon && navigator.sendBeacon) {
+                const blob = new Blob([payload], { type: "application/json" });
+                navigator.sendBeacon("/track/time", blob);
+                return;
+            }
+
+            fetch("/track/time", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: payload,
+                keepalive: true
+            }).catch(err => console.error("Time tracking error:", err));
         }
 
-        window.addEventListener("beforeunload", sendTime);
+        setInterval(() => sendTime(false), 15000);
+        window.addEventListener("beforeunload", () => sendTime(true));
+        window.addEventListener("pagehide", () => sendTime(true));
         window.addEventListener("visibilitychange", () => {
-            if (document.visibilityState === "hidden") {
-                sendTime();
-            }
+            if (document.visibilityState === "hidden") sendTime(true);
         });
 
-        // -----------------------------
-        // LIKE BUTTON (FIXED)
-        // -----------------------------
         const likeBtn = document.getElementById("likeBtn");
-
         if (likeBtn) {
             likeBtn.addEventListener("click", () => {
-
                 fetch(`/track/like/${slug}`, {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        device_id: getDeviceId()
-                    })
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ device_id: getDeviceId() })
                 })
                     .then(res => res.json())
                     .then(data => {
-                        const likeCount = document.getElementById("likeCount");
-                        if (likeCount) likeCount.innerText = data.likes;
+                        updateStatText(data);
+                        if (!data.liked) likeBtn.innerText = `👍 Already liked (${data.likes})`;
                     })
                     .catch(err => console.error("Like error:", err));
-
             });
         }
 
-        // -----------------------------
-        // SHARE BUTTONS (FIXED)
-        // -----------------------------
-        const shareButtons = document.querySelectorAll(".share-btn");
+        document.querySelectorAll(".share-btn").forEach(button => {
+            button.addEventListener("click", () => {
+                const platform = button.dataset.platform;
+                const url = encodeURIComponent(window.location.href);
 
-        shareButtons.forEach(btn => {
-            btn.addEventListener("click", () => {
+                if (platform === "twitter") window.open(`https://twitter.com/intent/tweet?url=${url}`);
+                if (platform === "linkedin") window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`);
 
-                const platform = btn.dataset.platform;
-                const url = window.location.href;
-
-                // 🔥 REAL SHARE
-                if (platform === "twitter") {
-                    window.open(`https://twitter.com/intent/tweet?url=${url}`);
-                }
-                if (platform === "linkedin") {
-                    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`);
-                }
-
-                // 🔥 TRACK
                 fetch(`/track/share/${slug}`, {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        platform: platform,
-                        device_id: getDeviceId()
-                    })
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ platform: platform, device_id: getDeviceId() })
                 })
                     .then(res => res.json())
-                    .then(data => {
-                        const shareCount = document.getElementById("shareCount");
-                        if (shareCount) shareCount.innerText = data.shares;
-                    })
+                    .then(data => updateStatText(data))
                     .catch(err => console.error("Share error:", err));
-
             });
         });
-
     }
-
 });

@@ -1879,3 +1879,68 @@ p {
         font-size: 16px !important;
     }
 }
+
+/* ===== Patched analytics and post action readability ===== */
+.post-live-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 14px 0 4px;
+    color: #111;
+}
+
+.post-live-stats span,
+.share-count {
+    background: #fff;
+    color: #111;
+    border: 1px solid #111;
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.post-live-stats strong,
+.share-count span {
+    color: #000;
+}
+
+.readable-article-card .post-actions {
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    border-top: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+    padding: 16px 0;
+    margin: 24px 0;
+}
+
+.readable-article-card #likeBtn,
+.readable-article-card .share-btn {
+    min-height: 44px;
+}
+
+@media (max-width: 700px) {
+    .post-live-stats {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .post-live-stats span,
+    .share-count {
+        width: 100%;
+        border-radius: 12px;
+        padding: 10px 12px;
+    }
+
+    .readable-article-card .post-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .readable-article-card .post-actions .btn,
+    .readable-article-card .share-count {
+        width: 100%;
+        text-align: center;
+    }
+}

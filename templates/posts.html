@@ -18,7 +18,7 @@
             </h2>
 
             <div class="post-card-meta">
-                Published: {{ post.publish_date }}
+                Published: {{ post.publish_date }} · 👍 {{ post.analytics.likes if post.analytics else 0 }} likes
             </div>
 
             {% if post.image_path %}
