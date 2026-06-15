@@ -1944,3 +1944,46 @@ p {
         text-align: center;
     }
 }
+
+/* =========================
+   NEWSLETTER
+========================= */
+.newsletter-box {
+    padding: 10px 0;
+}
+
+.newsletter-text,
+.newsletter-count {
+    font-size: 13px;
+    opacity: 0.75;
+    margin: 6px 0 10px;
+}
+
+.newsletter-form input {
+    margin-bottom: 8px;
+}
+
+.table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 14px;
+    font-size: 14px;
+}
+
+.admin-table th,
+.admin-table td {
+    padding: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+    text-align: left;
+    vertical-align: top;
+}
+
+.admin-table th {
+    color: #e9d5ff;
+    font-weight: 700;
+}

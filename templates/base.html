@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -94,6 +94,7 @@
                 {% if current_user.is_authenticated %}
                 <a class="navbtn" href="{{ url_for('admin_dashboard') }}">Dashboard</a>
                 <a class="navbtn" href="{{ url_for('analytics_dashboard') }}">Analytics</a>
+                <a class="navbtn" href="{{ url_for('admin_subscribers') }}">Subscribers</a>
                 <a class="navbtn logout" href="{{ url_for('admin_logout') }}">Logout</a>
                 {% else %}
                 <a class="navbtn" href="{{ url_for('admin_login') }}">Admin</a>
@@ -141,6 +142,19 @@
                         <span class="mini-pill">Insightful</span>
                         <span class="mini-pill">Actionable</span>
                     </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="newsletter-box">
+                    <div class="mini-title">Newsletter</div>
+                    <p class="newsletter-text">Get new data stories by email.</p>
+                    <form method="post" action="{{ url_for('subscribe') }}" class="newsletter-form">
+                        <input type="text" name="name" placeholder="Name (optional)" maxlength="120">
+                        <input type="email" name="email" placeholder="Your email" required maxlength="255">
+                        <button class="btn small" type="submit">Subscribe</button>
+                    </form>
+                    <div class="newsletter-count">{{ active_subscribers_count }} subscribers</div>
                 </div>
 
                 <div class="divider"></div>

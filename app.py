@@ -1,5 +1,9 @@
 import os
 import re
+import smtplib
+import secrets
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from datetime import date, datetime, timedelta
 from dotenv import load_dotenv
 from models import SummaryFeedback
@@ -25,7 +29,7 @@ from docx import Document
 from striprtf.striprtf import rtf_to_text
 
 from config import Config
-from models import db, User, Post, Comment, PostAnalytics, ViewSession, ShareEvent
+from models import db, User, Post, Comment, PostAnalytics, ViewSession, ShareEvent, Subscriber, NewsletterLog
 from chatbot import blog_chatbot_reply
 
 
@@ -50,6 +54,11 @@ def create_app():
     @login_manager.user_loader
     def load_user(user_id):
         return db.session.get(User, int(user_id))
+
+    @app.context_processor
+    def inject_newsletter_counts():
+        active_subscribers = Subscriber.query.filter_by(is_active=True).count()
+        return {"active_subscribers_count": active_subscribers}
 
     with app.app_context():
         db.create_all()
@@ -161,6 +170,44 @@ def create_app():
         return redirect(url_for("post_detail", slug=slug))
 
     # =========================
+    # NEWSLETTER SUBSCRIPTION
+    # =========================
+    @app.post("/subscribe")
+    def subscribe():
+        email = (request.form.get("email") or "").strip().lower()
+        name = (request.form.get("name") or "").strip()[:120]
+
+        if not email or not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+            flash("Please enter a valid email address.", "error")
+            return redirect(request.referrer or url_for("home"))
+
+        subscriber = Subscriber.query.filter_by(email=email).first()
+        if subscriber:
+            subscriber.name = name or subscriber.name
+            subscriber.is_active = True
+            subscriber.unsubscribed_at = None
+            flash("You are subscribed to the StatDash newsletter.", "success")
+        else:
+            db.session.add(Subscriber(email=email, name=name or None, source="website"))
+            flash("Subscription successful! You will receive new article updates.", "success")
+
+        db.session.commit()
+        return redirect(request.referrer or url_for("home"))
+
+    @app.get("/unsubscribe/<int:subscriber_id>/<token>")
+    def unsubscribe(subscriber_id, token):
+        subscriber = db.session.get(Subscriber, subscriber_id)
+        if not subscriber or token != make_unsubscribe_token(subscriber):
+            flash("Invalid unsubscribe link.", "error")
+            return redirect(url_for("home"))
+
+        subscriber.is_active = False
+        subscriber.unsubscribed_at = datetime.utcnow()
+        db.session.commit()
+        flash("You have been unsubscribed from the newsletter.", "success")
+        return redirect(url_for("home"))
+
+    # =========================
     # ADMIN LOGIN
     # =========================
     @app.route("/admin/login", methods=["GET", "POST"])
@@ -190,7 +237,8 @@ def create_app():
     @login_required
     def admin_dashboard():
         posts = Post.query.order_by(Post.created_at.desc()).all()
-        return render_template("admin_posts.html", posts=posts)
+        subscriber_count = Subscriber.query.filter_by(is_active=True).count()
+        return render_template("admin_posts.html", posts=posts, subscriber_count=subscriber_count)
 
     # =========================
     # CREATE POST (🔥 UPGRADED)
@@ -417,6 +465,54 @@ def create_app():
         return jsonify({"shares": analytics.shares})
 
     # =========================
+    # NEWSLETTER ADMIN
+    # =========================
+    @app.get("/admin/subscribers")
+    @login_required
+    def admin_subscribers():
+        subscribers = Subscriber.query.order_by(Subscriber.subscribed_at.desc()).all()
+        logs = NewsletterLog.query.order_by(NewsletterLog.sent_at.desc()).limit(50).all()
+        return render_template("admin_subscribers.html", subscribers=subscribers, logs=logs)
+
+    @app.post("/admin/notify/<int:id>")
+    @login_required
+    def notify_subscribers(id):
+        post = Post.query.get_or_404(id)
+        subscribers = Subscriber.query.filter_by(is_active=True).order_by(Subscriber.subscribed_at.desc()).all()
+
+        if not subscribers:
+            flash("No active subscribers found.", "error")
+            return redirect(url_for("admin_dashboard"))
+
+        sent = 0
+        failed = 0
+
+        for subscriber in subscribers:
+            try:
+                send_newsletter_email(app, post, subscriber)
+                subscriber.last_notified_at = datetime.utcnow()
+                db.session.add(NewsletterLog(
+                    post_id=post.id,
+                    subscriber_id=subscriber.id,
+                    email=subscriber.email,
+                    status="sent"
+                ))
+                sent += 1
+            except Exception as exc:
+                failed += 1
+                db.session.add(NewsletterLog(
+                    post_id=post.id,
+                    subscriber_id=subscriber.id,
+                    email=subscriber.email,
+                    status="failed",
+                    error_message=str(exc)[:2000]
+                ))
+
+        db.session.commit()
+        flash(f"Newsletter finished: {sent} sent, {failed} failed.", "success" if sent else "error")
+        return redirect(url_for("admin_subscribers"))
+
+    # =========================
     # ANALYTICS DASHBOARD
     # =========================
     @app.get("/admin/analytics")
@@ -571,6 +667,106 @@ def extract_rich_content(file):
         return "".join(f"<p>{line}</p>" for line in text.split("\n") if line.strip())
 
     return ""
+
+
+def post_plain_summary(html, limit=420):
+    """Create a clean email preview from stored post HTML."""
+    try:
+        from bs4 import BeautifulSoup
+        text = BeautifulSoup(html or "", "html.parser").get_text(" ", strip=True)
+    except Exception:
+        text = re.sub(r"<[^>]+>", " ", html or "")
+        text = re.sub(r"\s+", " ", text).strip()
+
+    if len(text) <= limit:
+        return text
+    return text[:limit].rsplit(" ", 1)[0] + "..."
+
+
+def make_unsubscribe_token(subscriber):
+    import hashlib
+    raw = f"{subscriber.id}:{subscriber.email}:{current_secret()}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:32]
+
+
+def current_secret():
+    return os.environ.get("SECRET_KEY") or "dev-secret-key"
+
+
+def render_newsletter_html(app, post, subscriber):
+    post_url = url_for("post_detail", slug=post.slug, _external=True)
+    unsubscribe_url = url_for(
+        "unsubscribe",
+        subscriber_id=subscriber.id,
+        token=make_unsubscribe_token(subscriber),
+        _external=True
+    )
+    summary = post_plain_summary(post.content)
+    image_block = ""
+    if post.image_path:
+        image_block = f"""
+        <img src=\"{post.image_path}\" alt=\"{post.title}\" style=\"width:100%;max-height:360px;object-fit:cover;border-radius:18px;margin:18px 0;border:1px solid #e9d5ff;\">
+        """
+
+    greeting = f"Hi {subscriber.name}," if subscriber.name else "Hi reader,"
+
+    return f"""
+    <!doctype html>
+    <html>
+    <body style=\"margin:0;background:#0f1020;font-family:Arial,Helvetica,sans-serif;color:#1f2937;\">
+      <div style=\"padding:28px 12px;background:linear-gradient(135deg,#31115f,#7c3aed,#ec4899);\">
+        <div style=\"max-width:680px;margin:auto;background:#ffffff;border-radius:24px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.25);\">
+          <div style=\"padding:26px 28px;background:linear-gradient(135deg,#1e1b4b,#6d28d9);color:white;\">
+            <div style=\"font-size:13px;letter-spacing:.12em;text-transform:uppercase;opacity:.85;\">New StatDash Article</div>
+            <h1 style=\"margin:10px 0 6px;font-size:30px;line-height:1.18;\">{post.title}</h1>
+            <div style=\"font-size:14px;opacity:.9;\">Published {post.publish_date}</div>
+          </div>
+
+          <div style=\"padding:28px;\">
+            <p style=\"font-size:16px;line-height:1.7;margin:0 0 12px;\">{greeting}</p>
+            <p style=\"font-size:17px;line-height:1.75;margin:0 0 14px;\">A new data story is live on <b>JuicyStatControversy / StatDash</b>.</p>
+            {image_block}
+            <div style=\"background:#f5f3ff;border:1px solid #ddd6fe;border-radius:18px;padding:18px 20px;margin:18px 0;\">
+              <div style=\"font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:#6d28d9;font-weight:bold;margin-bottom:8px;\">Quick Summary</div>
+              <p style=\"font-size:16px;line-height:1.75;margin:0;color:#374151;\">{summary}</p>
+            </div>
+
+            <a href=\"{post_url}\" style=\"display:inline-block;background:linear-gradient(135deg,#7c3aed,#ec4899);color:white;text-decoration:none;font-weight:bold;padding:14px 22px;border-radius:999px;margin:10px 0 20px;\">Read the full article →</a>
+
+            <p style=\"font-size:13px;line-height:1.6;color:#6b7280;margin-top:22px;\">You received this because you subscribed to StatDash updates. <a href=\"{unsubscribe_url}\" style=\"color:#7c3aed;\">Unsubscribe</a></p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+    """
+
+
+def send_newsletter_email(app, post, subscriber):
+    username = app.config.get("MAIL_USERNAME")
+    password = app.config.get("MAIL_PASSWORD")
+    sender = app.config.get("MAIL_DEFAULT_SENDER")
+
+    if not username or not password:
+        raise RuntimeError("MAIL_USERNAME and MAIL_PASSWORD are not configured in environment variables.")
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = f"New StatDash article: {post.title}"
+    msg["From"] = sender
+    msg["To"] = subscriber.email
+
+    post_url = url_for("post_detail", slug=post.slug, _external=True)
+    text_body = f"New StatDash article: {post.title}\n\n{post_plain_summary(post.content)}\n\nRead: {post_url}"
+    html_body = render_newsletter_html(app, post, subscriber)
+
+    msg.attach(MIMEText(text_body, "plain", "utf-8"))
+    msg.attach(MIMEText(html_body, "html", "utf-8"))
+
+    with smtplib.SMTP(app.config.get("MAIL_SERVER"), app.config.get("MAIL_PORT")) as server:
+        if app.config.get("MAIL_USE_TLS"):
+            server.starttls()
+        server.login(username, password)
+        server.sendmail(sender, [subscriber.email], msg.as_string())
 
 def manage_db_size():
     total = db.session.query(func.sum(func.length(Post.content))).scalar() or 0

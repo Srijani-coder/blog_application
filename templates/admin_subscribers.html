@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Newsletter Subscribers{% endblock %}
+
+{% block content %}
+<div class="admin-top">
+    <h2>Newsletter Subscribers</h2>
+    <div class="admin-actions">
+        <a class="btn ghost" href="{{ url_for('admin_dashboard') }}">Back to Posts</a>
+    </div>
+</div>
+
+<div class="panel glass">
+    <h3>Subscribers</h3>
+    <p class="muted">Active subscribers are emailed when you press Notify on a blog post.</p>
+
+    {% if subscribers %}
+    <div class="table-wrap">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Subscribed</th>
+                    <th>Last Notified</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in subscribers %}
+                <tr>
+                    <td>{{ s.email }}</td>
+                    <td>{{ s.name or '-' }}</td>
+                    <td>{{ 'Active' if s.is_active else 'Unsubscribed' }}</td>
+                    <td>{{ s.subscribed_at.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ s.last_notified_at.strftime('%Y-%m-%d %H:%M') if s.last_notified_at else '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty">No subscribers yet.</div>
+    {% endif %}
+</div>
+
+<div class="panel glass">
+    <h3>Recent Email Logs</h3>
+    {% if logs %}
+    <div class="table-wrap">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Email</th>
+                    <th>Post</th>
+                    <th>Status</th>
+                    <th>Error</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for l in logs %}
+                <tr>
+                    <td>{{ l.sent_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ l.email }}</td>
+                    <td>{{ l.post.title if l.post else '-' }}</td>
+                    <td>{{ l.status }}</td>
+                    <td>{{ l.error_message[:120] if l.error_message else '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty">No email logs yet.</div>
+    {% endif %}
+</div>
+{% endblock %}

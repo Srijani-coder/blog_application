@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block title %}Admin • Posts{% endblock %}
 
 {% block content %}
@@ -12,6 +12,7 @@
 
         <!-- ✅ ADDED ANALYTICS BUTTON -->
         <a class="btn ghost" href="{{ url_for('analytics_dashboard') }}">Analytics</a>
+        <a class="btn ghost" href="{{ url_for('admin_subscribers') }}">Subscribers ({{ subscriber_count }})</a>
 
         <a class="btn ghost" href="{{ url_for('admin_logout') }}">Logout</a>
     </div>
@@ -52,6 +53,13 @@
                    href="{{ url_for('download_post', id=p.id) }}">
                     Backup
                 </a>
+
+                <!-- NOTIFY SUBSCRIBERS -->
+                <form method="POST" action="{{ url_for('notify_subscribers', id=p.id) }}" style="display:inline;">
+                    <button class="btn small" onclick="return confirm('Email this article to all active subscribers?')">
+                        📧 Notify
+                    </button>
+                </form>
 
                 <form method="POST" action="{{ url_for('delete_post', id=p.id) }}" style="display:inline;">
                     <button class="btn danger" onclick="return confirm('Delete this post?')">

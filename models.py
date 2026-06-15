@@ -1,4 +1,4 @@
-﻿from flask_sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from datetime import datetime, date
 
@@ -180,3 +180,30 @@ class SummaryFeedback(db.Model):
         nullable=False,
         index=True
     )
+
+class Subscriber(db.Model):
+    __tablename__ = "subscribers"
+
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(255), unique=True, nullable=False, index=True)
+    name = db.Column(db.String(120), nullable=True)
+    is_active = db.Column(db.Boolean, default=True, nullable=False, index=True)
+    source = db.Column(db.String(80), default="website", nullable=False)
+    subscribed_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    unsubscribed_at = db.Column(db.DateTime, nullable=True)
+    last_notified_at = db.Column(db.DateTime, nullable=True)
+
+
+class NewsletterLog(db.Model):
+    __tablename__ = "newsletter_logs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey("posts.id"), nullable=False, index=True)
+    subscriber_id = db.Column(db.Integer, db.ForeignKey("subscribers.id"), nullable=True, index=True)
+    email = db.Column(db.String(255), nullable=False, index=True)
+    status = db.Column(db.String(30), nullable=False, default="pending")
+    error_message = db.Column(db.Text, nullable=True)
+    sent_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    post = db.relationship("Post", backref=db.backref("newsletter_logs", lazy=True, cascade="all, delete-orphan"))
+    subscriber = db.relationship("Subscriber", backref=db.backref("newsletter_logs", lazy=True))
