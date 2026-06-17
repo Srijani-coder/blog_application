@@ -1,0 +1,49 @@
+GOOGLE SITEMAP + SEO SETUP FOR JUICYSTATCONTROVERSY
+
+What was added:
+1. /sitemap.xml
+   Dynamic sitemap listing:
+   - homepage
+   - /posts
+   - every blog article /post/<slug>
+
+2. /robots.txt
+   Allows Google to crawl public pages and points Google to the sitemap.
+   Admin and unsubscribe pages are blocked from crawling.
+
+3. SEO metadata in base.html
+   - meta description
+   - meta keywords
+   - canonical URL
+   - robots index/follow
+   - OpenGraph metadata
+   - Twitter card metadata
+
+4. BlogPosting JSON-LD in post.html
+   Each article now exposes structured data:
+   - headline
+   - author
+   - published date
+   - modified date
+   - contextual keywords
+   - image if available
+
+After deployment, open these URLs:
+https://statdash.onrender.com/sitemap.xml
+https://statdash.onrender.com/robots.txt
+
+Submit to Google:
+1. Go to Google Search Console.
+2. Select your property: https://statdash.onrender.com
+3. Go to Indexing > Sitemaps.
+4. Enter: sitemap.xml
+5. Click Submit.
+
+For each important post:
+1. Go to URL Inspection.
+2. Paste the article URL, for example:
+   https://statdash.onrender.com/post/your-post-slug
+3. Click Request indexing.
+
+Important note:
+Google does not rank pages just because keywords are added to a sitemap. Sitemaps help discovery. Ranking depends on article quality, titles, headings, internal links, backlinks, performance, mobile usability, and matching search intent. The code adds contextual metadata and schema so Google can better understand your article topics.

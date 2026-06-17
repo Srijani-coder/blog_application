@@ -1,5 +1,34 @@
 {% extends "base.html" %}
-{% block title %}{{ post.title }} • StatsDash{% endblock %}
+{% block title %}{{ post.title }} • JuicyStatControversy{% endblock %}
+{% block og_title %}{{ post.title }} • JuicyStatControversy{% endblock %}
+{% block twitter_title %}{{ post.title }} • JuicyStatControversy{% endblock %}
+{% block og_type %}article{% endblock %}
+{% block structured_data %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": {{ post.title|tojson }},
+  "description": {{ meta_description|tojson }},
+  "author": {
+    "@type": "Person",
+    "name": "Srijani Chakrabarti"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "JuicyStatControversy"
+  },
+  "datePublished": "{{ post.publish_date.isoformat() }}",
+  "dateModified": "{{ post.created_at.date().isoformat() if post.created_at else post.publish_date.isoformat() }}",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "{{ request.url }}"
+  },
+  "keywords": {{ post_keywords|tojson }}{% if post.image_path %},
+  "image": [{{ post.image_path|tojson }}]{% endif %}
+}
+</script>
+{% endblock %}
 
 {% block content %}
 <section class="section">

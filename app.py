@@ -12,7 +12,7 @@ load_dotenv()
 
 from flask import (
     Flask, render_template, request, redirect, url_for,
-    flash, jsonify, send_file
+    flash, jsonify, send_file, Response
 )
 from flask_login import (
     LoginManager, login_user, login_required, logout_user
@@ -21,6 +21,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func, text, inspect
+from xml.sax.saxutils import escape as xml_escape
 
 import cloudinary
 import cloudinary.uploader
@@ -41,6 +42,81 @@ MAX_DB_MB = 1000  # 1GB
 cloudinary.config(secure=True)
 
 
+# =========================
+# SEO HELPERS
+# =========================
+SITE_NAME = "JuicyStatControversy"
+SITE_DESCRIPTION = (
+    "Data stories, statistics, AI analysis, social issues, finance investigations, "
+    "crime data, bullying prevention, dashboards, and evidence-based blog articles."
+)
+BASE_SEO_KEYWORDS = [
+    "data analysis blog",
+    "statistics blog",
+    "current statistics",
+    "data storytelling",
+    "AI applications",
+    "visual dashboards",
+    "crime data analysis",
+    "finance investigation",
+    "bullying prevention",
+    "social issue analysis",
+    "India statistics",
+    "research based articles",
+    "public data analysis",
+]
+KEYWORD_BANK = [
+    "rape statistics", "violence against women", "forced marriage", "victim blaming",
+    "financial fraud", "chit fund", "Indian finance", "government data",
+    "bullying", "cyberbullying", "anti bullying AI", "student safety",
+    "plagiarism detection", "concept similarity", "copyright risk", "AI research",
+    "quantum computing", "fraud detection", "machine learning", "forecasting",
+    "dashboard", "Tableau", "Power BI", "Python data visualization",
+]
+
+def clean_text_from_html(html):
+    """Convert stored article HTML into readable plain text for SEO snippets."""
+    text = re.sub(r"<script[\s\S]*?</script>", " ", html or "", flags=re.I)
+    text = re.sub(r"<style[\s\S]*?</style>", " ", text, flags=re.I)
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
+def seo_description(post=None, limit=160):
+    if not post:
+        return SITE_DESCRIPTION[:limit]
+    text = clean_text_from_html(post.content)
+    source = text or post.title or SITE_DESCRIPTION
+    return source[:limit].rsplit(" ", 1)[0]
+
+
+def seo_keywords(post=None):
+    """Build contextual keyword phrases from title/content plus a curated bank.
+
+    Note: Google does not use sitemap keyword tags, but strong titles,
+    descriptions, schema keywords, and page content help Google understand context.
+    """
+    words = list(BASE_SEO_KEYWORDS)
+    if post:
+        combined = f"{post.title} {clean_text_from_html(post.content)[:1200]}".lower()
+        for keyword in KEYWORD_BANK:
+            if any(part in combined for part in keyword.lower().split()[:2]):
+                words.append(keyword)
+        title_terms = [w for w in re.findall(r"[a-zA-Z][a-zA-Z]{3,}", post.title.lower()) if w not in {"with", "from", "that", "this"}]
+        words.extend(title_terms[:8])
+    # de-duplicate while preserving order
+    seen = set()
+    result = []
+    for item in words:
+        item = item.strip()
+        key = item.lower()
+        if item and key not in seen:
+            seen.add(key)
+            result.append(item)
+    return result[:28]
+
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
@@ -58,7 +134,12 @@ def create_app():
     @app.context_processor
     def inject_newsletter_counts():
         active_subscribers = Subscriber.query.filter_by(is_active=True).count()
-        return {"active_subscribers_count": active_subscribers}
+        return {
+            "active_subscribers_count": active_subscribers,
+            "site_name": SITE_NAME,
+            "default_meta_description": SITE_DESCRIPTION,
+            "default_meta_keywords": ", ".join(BASE_SEO_KEYWORDS),
+        }
 
     with app.app_context():
         db.create_all()
@@ -107,7 +188,9 @@ def create_app():
             recent_posts=recent_posts,
             todays_comments=todays_comments,
             todays_comment_count=todays_comment_count,
-            comments_page_size=COMMENTS_PAGE_SIZE
+            comments_page_size=COMMENTS_PAGE_SIZE,
+            meta_description=SITE_DESCRIPTION,
+            meta_keywords=", ".join(BASE_SEO_KEYWORDS)
         )
 
     # =========================
@@ -116,7 +199,74 @@ def create_app():
     @app.get("/posts")
     def posts():
         posts = Post.query.order_by(Post.publish_date.desc()).all()
-        return render_template("posts.html", posts=posts)
+        return render_template(
+            "posts.html",
+            posts=posts,
+            meta_description="Browse all JuicyStatControversy data stories, statistics articles, dashboards, social analysis, finance investigations, and AI research posts.",
+            meta_keywords=", ".join(BASE_SEO_KEYWORDS + ["all blog posts", "latest statistics articles"])
+        )
+
+    # =========================
+    # SEO: SITEMAP + ROBOTS
+    # =========================
+    @app.get("/sitemap.xml")
+    def sitemap_xml():
+        """Dynamic XML sitemap for Google Search Console."""
+        posts = Post.query.order_by(Post.publish_date.desc()).all()
+        today_iso = date.today().isoformat()
+
+        urls = [
+            {
+                "loc": url_for("home", _external=True),
+                "lastmod": today_iso,
+                "changefreq": "daily",
+                "priority": "1.0",
+            },
+            {
+                "loc": url_for("posts", _external=True),
+                "lastmod": today_iso,
+                "changefreq": "daily",
+                "priority": "0.9",
+            },
+        ]
+
+        for post in posts:
+            lastmod = (post.created_at.date() if post.created_at else post.publish_date).isoformat()
+            urls.append({
+                "loc": url_for("post_detail", slug=post.slug, _external=True),
+                "lastmod": lastmod,
+                "changefreq": "weekly",
+                "priority": "0.8",
+            })
+
+        xml_urls = []
+        for item in urls:
+            xml_urls.append(f"""
+    <url>
+        <loc>{xml_escape(item['loc'])}</loc>
+        <lastmod>{item['lastmod']}</lastmod>
+        <changefreq>{item['changefreq']}</changefreq>
+        <priority>{item['priority']}</priority>
+    </url>""")
+
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+%s
+</urlset>
+""" % "".join(xml_urls)
+        return Response(xml, mimetype="application/xml")
+
+    @app.get("/robots.txt")
+    def robots_txt():
+        robots = f"""User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /unsubscribe/
+
+Sitemap: {url_for('sitemap_xml', _external=True)}
+"""
+        return Response(robots, mimetype="text/plain")
 
     # =========================
     # POST DETAIL
@@ -146,7 +296,10 @@ def create_app():
             analytics=analytics,
             initial_comments=initial_comments,
             comment_count=comment_count,
-            comments_page_size=COMMENTS_PAGE_SIZE
+            comments_page_size=COMMENTS_PAGE_SIZE,
+            meta_description=seo_description(post),
+            meta_keywords=", ".join(seo_keywords(post)),
+            post_keywords=seo_keywords(post)
         )
 
     # =========================
