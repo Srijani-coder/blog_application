@@ -2,6 +2,8 @@ import os
 import re
 import smtplib
 import secrets
+import json
+from urllib.parse import urljoin
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import date, datetime, timedelta
@@ -12,7 +14,7 @@ load_dotenv()
 
 from flask import (
     Flask, render_template, request, redirect, url_for,
-    flash, jsonify, send_file, Response
+    flash, jsonify, send_file, Response, abort
 )
 from flask_login import (
     LoginManager, login_user, login_required, logout_user
@@ -117,6 +119,76 @@ def seo_keywords(post=None):
     return result[:28]
 
 
+
+
+def get_site_url():
+    """Return the canonical public site URL. Set SITE_URL=https://yourdomain.com in Render."""
+    return (os.environ.get("SITE_URL") or os.environ.get("PUBLIC_SITE_URL") or "").rstrip("/")
+
+
+def external_url(endpoint, **values):
+    """Build absolute URLs using SITE_URL when configured; otherwise use Flask host."""
+    public_site = get_site_url()
+    relative = url_for(endpoint, **values)
+    if public_site:
+        return urljoin(public_site + "/", relative.lstrip("/"))
+    return url_for(endpoint, _external=True, **values)
+
+
+def canonical_for_current_request():
+    """Canonical without tracking/query parameters."""
+    public_site = get_site_url()
+    path = request.path.rstrip("/") or "/"
+    if public_site:
+        return public_site + path
+    return request.url_root.rstrip("/") + path
+
+
+def seo_image(post=None):
+    if post and post.image_path:
+        return post.image_path
+    public_site = get_site_url()
+    if public_site:
+        return public_site + url_for("static", filename="profile.jpg")
+    return url_for("static", filename="profile.jpg", _external=True)
+
+
+def reading_time_minutes(html):
+    words = clean_text_from_html(html).split()
+    return max(1, round(len(words) / 220))
+
+
+def build_article_schema(post):
+    return {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": post.title[:110],
+        "description": seo_description(post),
+        "image": [seo_image(post)],
+        "author": {"@type": "Person", "name": "Srijani Chakrabarti"},
+        "publisher": {
+            "@type": "Organization",
+            "name": SITE_NAME,
+            "logo": {"@type": "ImageObject", "url": seo_image(None)}
+        },
+        "mainEntityOfPage": {"@type": "WebPage", "@id": external_url("post_detail", slug=post.slug)},
+        "datePublished": post.publish_date.isoformat() if post.publish_date else None,
+        "dateModified": post.created_at.date().isoformat() if post.created_at else None,
+        "keywords": seo_keywords(post),
+        "wordCount": len(clean_text_from_html(post.content).split())
+    }
+
+
+def build_website_schema():
+    return {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": SITE_NAME,
+        "description": SITE_DESCRIPTION,
+        "url": get_site_url() or request.url_root.rstrip("/"),
+        "publisher": {"@type": "Person", "name": "Srijani Chakrabarti"}
+    }
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
@@ -132,14 +204,35 @@ def create_app():
         return db.session.get(User, int(user_id))
 
     @app.context_processor
-    def inject_newsletter_counts():
+    def inject_global_template_vars():
         active_subscribers = Subscriber.query.filter_by(is_active=True).count()
         return {
             "active_subscribers_count": active_subscribers,
             "site_name": SITE_NAME,
             "default_meta_description": SITE_DESCRIPTION,
             "default_meta_keywords": ", ".join(BASE_SEO_KEYWORDS),
+            "canonical_url": canonical_for_current_request(),
+            "default_og_image": seo_image(None),
+            "website_schema": build_website_schema(),
         }
+
+    @app.template_filter("plain")
+    def plain_filter(value):
+        return clean_text_from_html(value)
+
+    @app.template_filter("reading_time")
+    def reading_time_filter(value):
+        return reading_time_minutes(value)
+
+    @app.after_request
+    def add_seo_and_security_headers(response):
+        # Keep private/admin URLs out of search results even if linked accidentally.
+        if request.path.startswith("/admin") or request.path.startswith("/unsubscribe"):
+            response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+        return response
 
     with app.app_context():
         db.create_all()
@@ -190,7 +283,9 @@ def create_app():
             todays_comment_count=todays_comment_count,
             comments_page_size=COMMENTS_PAGE_SIZE,
             meta_description=SITE_DESCRIPTION,
-            meta_keywords=", ".join(BASE_SEO_KEYWORDS)
+            meta_keywords=", ".join(BASE_SEO_KEYWORDS),
+            canonical_url=external_url("home"),
+            og_image=seo_image(todays_post),
         )
 
     # =========================
@@ -203,7 +298,9 @@ def create_app():
             "posts.html",
             posts=posts,
             meta_description="Browse all JuicyStatControversy data stories, statistics articles, dashboards, social analysis, finance investigations, and AI research posts.",
-            meta_keywords=", ".join(BASE_SEO_KEYWORDS + ["all blog posts", "latest statistics articles"])
+            meta_keywords=", ".join(BASE_SEO_KEYWORDS + ["all blog posts", "latest statistics articles"]),
+            canonical_url=external_url("posts"),
+            og_image=seo_image(posts[0] if posts else None),
         )
 
     # =========================
@@ -217,13 +314,13 @@ def create_app():
 
         urls = [
             {
-                "loc": url_for("home", _external=True),
+                "loc": external_url("home"),
                 "lastmod": today_iso,
                 "changefreq": "daily",
                 "priority": "1.0",
             },
             {
-                "loc": url_for("posts", _external=True),
+                "loc": external_url("posts"),
                 "lastmod": today_iso,
                 "changefreq": "daily",
                 "priority": "0.9",
@@ -232,25 +329,36 @@ def create_app():
 
         for post in posts:
             lastmod = (post.created_at.date() if post.created_at else post.publish_date).isoformat()
-            urls.append({
-                "loc": url_for("post_detail", slug=post.slug, _external=True),
+            item = {
+                "loc": external_url("post_detail", slug=post.slug),
                 "lastmod": lastmod,
                 "changefreq": "weekly",
                 "priority": "0.8",
-            })
+            }
+            if post.image_path:
+                item["image"] = post.image_path
+                item["image_title"] = post.title
+            urls.append(item)
 
         xml_urls = []
         for item in urls:
+            image_xml = ""
+            if item.get("image"):
+                image_xml = f"""
+        <image:image>
+            <image:loc>{xml_escape(item['image'])}</image:loc>
+            <image:title>{xml_escape(item.get('image_title', ''))}</image:title>
+        </image:image>"""
             xml_urls.append(f"""
     <url>
         <loc>{xml_escape(item['loc'])}</loc>
         <lastmod>{item['lastmod']}</lastmod>
         <changefreq>{item['changefreq']}</changefreq>
-        <priority>{item['priority']}</priority>
+        <priority>{item['priority']}</priority>{image_xml}
     </url>""")
 
         xml = """<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 %s
 </urlset>
 """ % "".join(xml_urls)
@@ -264,9 +372,56 @@ Disallow: /admin
 Disallow: /admin/
 Disallow: /unsubscribe/
 
-Sitemap: {url_for('sitemap_xml', _external=True)}
+Sitemap: {external_url('sitemap_xml')}
 """
         return Response(robots, mimetype="text/plain")
+
+    @app.get("/feed.xml")
+    def feed_xml():
+        posts = Post.query.order_by(Post.publish_date.desc(), Post.created_at.desc()).limit(30).all()
+        items = []
+        for post in posts:
+            pub_dt = datetime.combine(post.publish_date, datetime.min.time()) if post.publish_date else post.created_at
+            pub_rfc = pub_dt.strftime("%a, %d %b %Y %H:%M:%S +0000")
+            post_url = external_url("post_detail", slug=post.slug)
+            items.append(f"""
+        <item>
+            <title>{xml_escape(post.title)}</title>
+            <link>{xml_escape(post_url)}</link>
+            <guid>{xml_escape(post_url)}</guid>
+            <pubDate>{pub_rfc}</pubDate>
+            <description>{xml_escape(seo_description(post, 300))}</description>
+        </item>""")
+        xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+    <channel>
+        <title>{xml_escape(SITE_NAME)}</title>
+        <link>{xml_escape(external_url("home"))}</link>
+        <description>{xml_escape(SITE_DESCRIPTION)}</description>
+        {''.join(items)}
+    </channel>
+</rss>
+"""
+        return Response(xml, mimetype="application/rss+xml")
+
+    @app.get("/llms.txt")
+    def llms_txt():
+        recent = Post.query.order_by(Post.publish_date.desc(), Post.created_at.desc()).limit(20).all()
+        lines = [
+            f"# {SITE_NAME}",
+            SITE_DESCRIPTION,
+            "",
+            "## Important pages",
+            f"- Home: {external_url('home')}",
+            f"- All posts: {external_url('posts')}",
+            f"- Sitemap: {external_url('sitemap_xml')}",
+            f"- RSS feed: {external_url('feed_xml')}",
+            "",
+            "## Recent articles",
+        ]
+        for post in recent:
+            lines.append(f"- {post.title}: {external_url('post_detail', slug=post.slug)}")
+        return Response("\n".join(lines) + "\n", mimetype="text/plain")
 
     # =========================
     # POST DETAIL
@@ -299,7 +454,11 @@ Sitemap: {url_for('sitemap_xml', _external=True)}
             comments_page_size=COMMENTS_PAGE_SIZE,
             meta_description=seo_description(post),
             meta_keywords=", ".join(seo_keywords(post)),
-            post_keywords=seo_keywords(post)
+            post_keywords=seo_keywords(post),
+            canonical_url=external_url("post_detail", slug=post.slug),
+            og_image=seo_image(post),
+            article_schema=build_article_schema(post),
+            reading_minutes=reading_time_minutes(post.content),
         )
 
     # =========================
@@ -339,7 +498,7 @@ Sitemap: {url_for('sitemap_xml', _external=True)}
             subscriber.name = name or subscriber.name
             subscriber.is_active = True
             subscriber.unsubscribed_at = None
-            flash("You are subscribed to the StatDash newsletter.", "success")
+            flash("You are subscribed to the JSTcon newsletter.", "success")
         else:
             db.session.add(Subscriber(email=email, name=name or None, source="website"))
             flash("Subscription successful! You will receive new article updates.", "success")
@@ -847,7 +1006,7 @@ def current_secret():
 
 
 def render_newsletter_html(app, post, subscriber):
-    post_url = url_for("post_detail", slug=post.slug, _external=True)
+    post_url = external_url("post_detail", slug=post.slug)
     unsubscribe_url = url_for(
         "unsubscribe",
         subscriber_id=subscriber.id,
@@ -877,7 +1036,7 @@ def render_newsletter_html(app, post, subscriber):
 
           <div style=\"padding:28px;\">
             <p style=\"font-size:16px;line-height:1.7;margin:0 0 12px;\">{greeting}</p>
-            <p style=\"font-size:17px;line-height:1.75;margin:0 0 14px;\">A new data story is live on <b>JuicyStatControversy / StatDash</b>.</p>
+            <p style=\"font-size:17px;line-height:1.75;margin:0 0 14px;\">A new data story is live on <b>JuicyStatControversy</b>.</p>
             {image_block}
             <div style=\"background:#f5f3ff;border:1px solid #ddd6fe;border-radius:18px;padding:18px 20px;margin:18px 0;\">
               <div style=\"font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:#6d28d9;font-weight:bold;margin-bottom:8px;\">Quick Summary</div>
@@ -908,7 +1067,7 @@ def send_newsletter_email(app, post, subscriber):
     msg["From"] = sender
     msg["To"] = subscriber.email
 
-    post_url = url_for("post_detail", slug=post.slug, _external=True)
+    post_url = external_url("post_detail", slug=post.slug)
     text_body = f"New StatDash article: {post.title}\n\n{post_plain_summary(post.content)}\n\nRead: {post_url}"
     html_body = render_newsletter_html(app, post, subscriber)
 

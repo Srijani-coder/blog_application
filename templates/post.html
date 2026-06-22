@@ -1,130 +1,98 @@
 {% extends "base.html" %}
-{% block title %}{{ post.title }} • JuicyStatControversy{% endblock %}
-{% block og_title %}{{ post.title }} • JuicyStatControversy{% endblock %}
-{% block twitter_title %}{{ post.title }} • JuicyStatControversy{% endblock %}
+{% block title %}{{ post.title }} | {{ site_name }}{% endblock %}
 {% block og_type %}article{% endblock %}
+{% block og_title %}{{ post.title }}{% endblock %}
+{% block twitter_title %}{{ post.title }}{% endblock %}
 {% block structured_data %}
+<script type="application/ld+json">{{ article_schema|tojson }}</script>
 <script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "BlogPosting",
-  "headline": {{ post.title|tojson }},
-  "description": {{ meta_description|tojson }},
-  "author": {
-    "@type": "Person",
-    "name": "Srijani Chakrabarti"
-  },
-  "publisher": {
-    "@type": "Organization",
-    "name": "JuicyStatControversy"
-  },
-  "datePublished": "{{ post.publish_date.isoformat() }}",
-  "dateModified": "{{ post.created_at.date().isoformat() if post.created_at else post.publish_date.isoformat() }}",
-  "mainEntityOfPage": {
-    "@type": "WebPage",
-    "@id": "{{ request.url }}"
-  },
-  "keywords": {{ post_keywords|tojson }}{% if post.image_path %},
-  "image": [{{ post.image_path|tojson }}]{% endif %}
-}
+{{ {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+        {"@type": "ListItem", "position": 1, "name": "Home", "item": url_for('home', _external=True)},
+        {"@type": "ListItem", "position": 2, "name": "Posts", "item": url_for('posts', _external=True)},
+        {"@type": "ListItem", "position": 3, "name": post.title, "item": canonical_url}
+    ]
+}|tojson }}
 </script>
 {% endblock %}
 
 {% block content %}
-<section class="section">
-    <article class="card glass readable-article-card">
+<nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="{{ url_for('home') }}">Home</a> › <a href="{{ url_for('posts') }}">Posts</a> › <span>{{ post.title }}</span>
+</nav>
 
-        <!-- TITLE -->
-        <div>
-            <h1 class="post-title">{{ post.title }}</h1>
-            <div class="meta">Published: {{ post.publish_date }}</div>
-            <div class="post-live-stats" aria-label="Post statistics">
-                <span>👁 Views: <strong id="viewCount">{{ analytics.views if analytics else 0 }}</strong></span>
-                <span>👍 Likes: <strong id="inlineLikeCount">{{ analytics.likes if analytics else 0 }}</strong></span>
-                <span>⏱ Avg read time: <strong id="avgTimeCount">0 sec</strong></span>
+<section class="section post-detail-section">
+    <article class="post-detail-card glass readable-article-card" data-slug="{{ post.slug }}" itemscope itemtype="https://schema.org/Article">
+        <header class="post-header">
+            <h1 class="post-detail-title" itemprop="headline">{{ post.title }}</h1>
+            <div class="post-meta">
+                Published <time datetime="{{ post.publish_date }}" itemprop="datePublished">{{ post.publish_date }}</time>
+                · {{ reading_minutes }} min read
+                · 👍 <span id="topLikeCount">{{ analytics.likes if analytics else 0 }}</span> likes
+                · 👁 {{ analytics.views if analytics else 0 }} views
             </div>
-        </div>
+        </header>
 
-        <!-- IMAGE (FIXED: Cloudinary URL direct) -->
         {% if post.image_path %}
-        <img class="media" src="{{ post.image_path }}" alt="Post image">
+        <figure>
+            <img class="media" src="{{ post.image_path }}" alt="{{ post.title }} visual dashboard or article image" loading="eager" fetchpriority="high" itemprop="image">
+            <figcaption>{{ post.title }}</figcaption>
+        </figure>
         {% endif %}
 
-        <!-- VIDEO (optional future support) -->
         {% if post.video_path %}
-        <video class="media" controls>
+        <video class="media" controls preload="metadata">
             <source src="{{ post.video_path }}">
+            Your browser does not support the video tag.
         </video>
         {% endif %}
 
-        <!-- CONTENT -->
-        <div class="content post-readable-content">{{ post.content | safe }}</div>
-
-        <!-- ========================= -->
-        <!-- NEW: POST ACTIONS (LIKE / SHARE) -->
-        <!-- ========================= -->
-        <div class="post-actions">
-            <button id="likeBtn" class="btn" type="button">
-                👍 Like (<span id="likeCount">{{ analytics.likes if analytics else 0 }}</span>)
-            </button>
-
-            <button class="btn share-btn" data-platform="twitter">
-                🐦 Share
-            </button>
-
-            <button class="btn share-btn" data-platform="linkedin">
-                💼 Share
-            </button>
-
-            <div class="share-count">
-                Shares: <span id="shareCount">{{ analytics.shares if analytics else 0 }}</span>
-            </div>
+        <div class="content post-readable-content" itemprop="articleBody">
+            {{ post.content | safe }}
         </div>
 
-        <!-- ========================= -->
-        <!-- COMMENTS -->
-        <!-- ========================= -->
-        <div class="comments" data-slug="{{ post.slug }}">
-
-            <div class="comments-head">
-                <div class="comments-title">
-                    Comments <span class="count">({{ comment_count }})</span>
-                </div>
+        {% if post_keywords %}
+        <section class="keyword-box" aria-label="Article topics">
+            <h2>Topics covered</h2>
+            <div class="chips">
+                {% for keyword in post_keywords[:12] %}<span class="chip">{{ keyword }}</span>{% endfor %}
             </div>
+        </section>
+        {% endif %}
 
-            <!-- COMMENT FORM -->
+        <section class="related-box" aria-label="Recommended internal links">
+            <h2>Continue reading</h2>
+            <p><a href="{{ url_for('posts') }}">Browse all data stories, statistics articles, dashboards and AI research posts →</a></p>
+        </section>
+
+        <div class="post-actions">
+            <button class="btn like-btn" data-slug="{{ post.slug }}" id="likeButton" type="button">👍 Like (<span id="likeCount">{{ analytics.likes if analytics else 0 }}</span>)</button>
+            <button class="btn share-btn" data-platform="twitter">🐦 Share</button>
+            <button class="btn share-btn" data-platform="linkedin">💼 Share</button>
+            <div class="share-count">Shares: <span id="shareCount">{{ analytics.shares if analytics else 0 }}</span></div>
+        </div>
+
+        <div class="comments" data-slug="{{ post.slug }}">
+            <div class="comments-head"><div class="comments-title">Comments <span class="count">({{ comment_count }})</span></div></div>
             <form class="comment-form" method="post" action="{{ url_for('add_comment', slug=post.slug) }}">
                 <input name="name" placeholder="Your name" required maxlength="80">
                 <textarea name="text" rows="3" placeholder="Write a comment..." required maxlength="4000"></textarea>
                 <button class="btn" type="submit">Post comment</button>
             </form>
-
-            <!-- COMMENT LIST -->
             <div class="comment-list" id="commentList-{{ post.slug }}">
                 {% for c in initial_comments %}
                 <div class="comment">
-                    <div class="comment-top">
-                        <div class="comment-name">{{ c.name }}</div>
-                        <div class="comment-time">
-                            {{ c.created_at.strftime("%Y-%m-%d %H:%M UTC") }}
-                        </div>
-                    </div>
+                    <div class="comment-top"><div class="comment-name">{{ c.name }}</div><div class="comment-time">{{ c.created_at.strftime("%Y-%m-%d %H:%M UTC") }}</div></div>
                     <div class="comment-text">{{ c.text }}</div>
                 </div>
                 {% endfor %}
             </div>
-
-            <!-- LOAD MORE -->
             {% if comment_count > comments_page_size %}
-            <button class="btn ghost load-more"
-                    data-slug="{{ post.slug }}"
-                    data-offset="{{ initial_comments|length }}">
-                Read more comments…
-            </button>
+            <button class="btn ghost load-more" data-slug="{{ post.slug }}" data-offset="{{ initial_comments|length }}">Read more comments…</button>
             {% endif %}
-
         </div>
-
     </article>
 </section>
 {% endblock %}

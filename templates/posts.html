@@ -1,45 +1,28 @@
 {% extends "base.html" %}
-
-{% block title %}All Posts{% endblock %}
-
+{% block title %}All Data Stories, Dashboards and Statistics Articles | {{ site_name }}{% endblock %}
 {% block content %}
-
 <section class="posts-index-section">
-    <h1 class="page-title">All Blog Posts</h1>
+    <header>
+        <h1 class="page-title">All Blog Posts</h1>
+        <p class="page-intro">Research-backed data stories, social statistics, dashboard analysis, AI applications and public-data investigations.</p>
+    </header>
 
     <div class="posts-list">
         {% for post in posts %}
-        <article class="post-card readable-post-card">
-
-            <h2 class="post-card-title">
-                <a href="{{ url_for('post_detail', slug=post.slug) }}">
-                    {{ post.title }}
-                </a>
-            </h2>
-
-            <div class="post-card-meta">
-                Published: {{ post.publish_date }} · 👍 {{ post.analytics.likes if post.analytics else 0 }} likes
-            </div>
-
+        <article class="post-card readable-post-card" itemscope itemtype="https://schema.org/BlogPosting">
+            <h2 class="post-card-title" itemprop="headline"><a href="{{ url_for('post_detail', slug=post.slug) }}" itemprop="url">{{ post.title }}</a></h2>
+            <div class="post-card-meta">Published: <time datetime="{{ post.publish_date }}" itemprop="datePublished">{{ post.publish_date }}</time> · {{ post.content|reading_time }} min read · 👍 {{ post.analytics.likes if post.analytics else 0 }} likes</div>
             {% if post.image_path %}
             <a href="{{ url_for('post_detail', slug=post.slug) }}" aria-label="Read {{ post.title }}">
-                <img src="{{ post.image_path }}" class="post-card-img" alt="Post image">
+                <img src="{{ post.image_path }}" class="post-card-img" alt="{{ post.title }} article visual" loading="lazy" itemprop="image">
             </a>
             {% endif %}
-
-            <div class="post-card-excerpt">
-                {{ post.content | striptags | truncate(220, True, '...') }}
-            </div>
-
-            <a class="read-more-link" href="{{ url_for('post_detail', slug=post.slug) }}">
-                Read full post →
-            </a>
-
+            <p class="post-card-excerpt" itemprop="description">{{ post.content | plain | truncate(220, True, '...') }}</p>
+            <a class="read-more-link" href="{{ url_for('post_detail', slug=post.slug) }}">Read full post →</a>
         </article>
         {% else %}
         <p class="empty-state readable-post-card">No posts found.</p>
         {% endfor %}
     </div>
 </section>
-
 {% endblock %}
