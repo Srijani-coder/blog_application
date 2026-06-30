@@ -49,7 +49,6 @@ cloudinary.config(secure=True)
 SITE_NAME = "JuicyStatControversy"
 SITE_DESCRIPTION = (
     "Data stories, statistics, AI analysis, social issues, finance investigations, "
-    "crime data, bullying prevention, dashboards, and evidence-based blog articles."
 )
 BASE_SEO_KEYWORDS = [
     "data analysis blog",
