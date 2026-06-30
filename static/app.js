@@ -144,3 +144,21 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 });
+
+// Admin DOCX import helper: reminds the admin to add image alt text before publishing.
+document.addEventListener('DOMContentLoaded', function () {
+  const docInput = document.getElementById('docfileInput');
+  const altBox = document.getElementById('docxAltTextBox');
+  if (!docInput || !altBox) return;
+
+  docInput.addEventListener('change', function () {
+    const file = docInput.files && docInput.files[0];
+    if (!file) return;
+    if (file.name.toLowerCase().endsWith('.docx')) {
+      altBox.focus();
+      if (!altBox.value.trim()) {
+        altBox.placeholder = 'DOCX selected. Enter one alt text per line for each image in the Word document.\nExample:\nCustomer analytics dashboard screenshot\nBusiness owner profile image\nEvent photo from client office';
+      }
+    }
+  });
+});

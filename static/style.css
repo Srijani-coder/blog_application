@@ -1987,3 +1987,49 @@ p {
     color: #e9d5ff;
     font-weight: 700;
 }
+
+/* Rich Word/DOCX imported article content */
+.post-readable-content,
+.post-readable-content .docx-paragraph {
+    white-space: pre-wrap;
+}
+.post-readable-content .docx-empty-line {
+    min-height: 1rem;
+    margin: 0.35rem 0;
+}
+.post-readable-content .docx-figure {
+    margin: 1.25rem auto;
+    text-align: center;
+}
+.post-readable-content .docx-inline-image {
+    max-width: 100%;
+    height: auto;
+    display: inline-block;
+    vertical-align: middle;
+}
+.post-readable-content .docx-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    margin: 1rem 0;
+}
+.post-readable-content .docx-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.post-readable-content .docx-table td,
+.post-readable-content .docx-table th {
+    border: 1px solid rgba(255,255,255,0.25);
+    padding: 0.55rem;
+    vertical-align: top;
+}
+.post-readable-content .docx-list {
+    margin: 0.75rem 0 0.75rem 1.5rem;
+    padding-left: 1rem;
+}
+.field-help {
+    display: block;
+    opacity: 0.8;
+    font-size: 0.9rem;
+    margin: 0.25rem 0 0.75rem;
+    line-height: 1.45;
+}

@@ -28,8 +28,7 @@ from xml.sax.saxutils import escape as xml_escape
 import cloudinary
 import cloudinary.uploader
 
-from docx import Document
-from striprtf.striprtf import rtf_to_text
+from docx_rich_importer import extract_rich_content
 
 from config import Config
 from models import db, User, Post, Comment, PostAnalytics, ViewSession, ShareEvent, Subscriber, NewsletterLog
@@ -498,7 +497,7 @@ Sitemap: {external_url('sitemap_xml')}
             subscriber.name = name or subscriber.name
             subscriber.is_active = True
             subscriber.unsubscribed_at = None
-            flash("You are subscribed to the JSTcon newsletter.", "success")
+            flash("You are subscribed to the StatDash newsletter.", "success")
         else:
             db.session.add(Subscriber(email=email, name=name or None, source="website"))
             flash("Subscription successful! You will receive new article updates.", "success")
@@ -563,10 +562,16 @@ Sitemap: {external_url('sitemap_xml')}
             title = request.form["title"]
             content = request.form.get("content", "")
 
-            # DOC upload
+            # DOC upload: preserve Word formatting, inline images, hyperlinks, tables and spacing.
+            # Admin can enter one image alt text per line; these are assigned to DOCX images in order.
             docfile = request.files.get("docfile")
+            docx_image_alt_texts = [
+                line.strip()
+                for line in request.form.get("docx_image_alt_texts", "").splitlines()
+                if line.strip()
+            ]
             if docfile and docfile.filename:
-                content = extract_rich_content(docfile)
+                content = extract_rich_content(docfile, image_alt_texts=docx_image_alt_texts)
 
             if not content:
                 flash("Provide content or upload a document", "error")
@@ -908,12 +913,22 @@ Sitemap: {external_url('sitemap_xml')}
 # =========================
 
 def wrap_lists(html):
+    """Wrap plain <li> lines from manually typed content.
+
+    Rich DOCX imports already include proper <ul>/<ol> containers, so leave those
+    untouched to avoid nested or broken lists.
+    """
+    if not html:
+        return html
+    if "<ul" in html.lower() or "<ol" in html.lower():
+        return html
+
     lines = html.split("\n")
     result = []
     in_list = False
 
     for line in lines:
-        if "<li>" in line:
+        if "<li" in line.lower():
             if not in_list:
                 result.append("<ul>")
                 in_list = True
@@ -928,58 +943,6 @@ def wrap_lists(html):
         result.append("</ul>")
 
     return "\n".join(result)
-def extract_rich_content(file):
-    name = file.filename.lower()
-
-    html = ""
-
-    # ================= DOCX =================
-    if name.endswith(".docx"):
-        doc = Document(file)
-
-        # ---- TEXT ----
-        for para in doc.paragraphs:
-            text = para.text.strip()
-            if not text:
-                continue
-
-            # Detect bullet points
-            if para.style.name.lower().startswith("list"):
-                html += f"<li>{text}</li>"
-            else:
-                html += f"<p>{text}</p>"
-
-        # ---- IMAGES ----
-        for rel in doc.part._rels:
-            rel = doc.part._rels[rel]
-            if "image" in rel.target_ref:
-                image_data = rel.target_part.blob
-
-                # Upload to Cloudinary
-                res = cloudinary.uploader.upload(
-                    image_data,
-                    folder="statsdash/content_images",
-                    resource_type="image"
-                )
-
-                img_url = res["secure_url"]
-
-                html += f'<img src="{img_url}" class="media">'
-
-        return html
-
-    # ================= RTF =================
-    elif name.endswith(".rtf"):
-        text = rtf_to_text(file.read().decode())
-        return "".join(f"<p>{line}</p>" for line in text.split("\n") if line.strip())
-
-    # ================= TXT =================
-    elif name.endswith(".txt"):
-        text = file.read().decode()
-        return "".join(f"<p>{line}</p>" for line in text.split("\n") if line.strip())
-
-    return ""
-
 
 def post_plain_summary(html, limit=420):
     """Create a clean email preview from stored post HTML."""
@@ -1036,7 +999,7 @@ def render_newsletter_html(app, post, subscriber):
 
           <div style=\"padding:28px;\">
             <p style=\"font-size:16px;line-height:1.7;margin:0 0 12px;\">{greeting}</p>
-            <p style=\"font-size:17px;line-height:1.75;margin:0 0 14px;\">A new data story is live on <b>JuicyStatControversy</b>.</p>
+            <p style=\"font-size:17px;line-height:1.75;margin:0 0 14px;\">A new data story is live on <b>JuicyStatControversy / StatDash</b>.</p>
             {image_block}
             <div style=\"background:#f5f3ff;border:1px solid #ddd6fe;border-radius:18px;padding:18px 20px;margin:18px 0;\">
               <div style=\"font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:#6d28d9;font-weight:bold;margin-bottom:8px;\">Quick Summary</div>

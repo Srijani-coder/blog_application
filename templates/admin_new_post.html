@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block title %}Admin • New Post{% endblock %}
 
 {% block content %}
@@ -17,7 +17,16 @@
 
         <!-- DOC upload -->
         <label>Upload Document (.docx / .rtf / .txt)</label>
-        <input type="file" name="docfile" accept=".docx,.rtf,.txt">
+        <input type="file" name="docfile" id="docfileInput" accept=".docx,.rtf,.txt">
+        <small class="field-help">DOCX import now preserves headings, fonts, bold, italics, underline, hyperlinks, lists, tables, spacing and inline image order as much as browser HTML allows.</small>
+
+        <label>Alt text for images inside the Word document</label>
+        <textarea name="docx_image_alt_texts" id="docxAltTextBox" rows="5" placeholder="Enter one alt text per line, in the same order as images appear in the Word document.
+Example:
+Dashboard showing customer views by city
+Founder speaking at an event
+Certificate image for training completion"></textarea>
+        <small class="field-help">For accessibility and SEO, add one clear description for each image. If left blank, the app uses “Article image 1”, “Article image 2”, etc.</small>
 
         <!-- IMAGE -->
         <label>Image upload (optional)</label>
