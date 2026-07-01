@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="google-site-verification" content="EGnIl0vrePApq7cyT-dpBGND4LE9YYVkBwYEgWPIK90" />
 
-    <title>{% block title %}{{ site_name }}{% endblock %}</title>
+    <title>{% block title %}{{ site_name }} | AI Website Development & Site Development Agency{% endblock %}</title>
     <meta name="description" content="{{ meta_description|default(default_meta_description)|e }}">
     <meta name="keywords" content="{{ meta_keywords|default(default_meta_keywords)|e }}">
     <meta name="author" content="Srijani Chakrabarti">
@@ -30,68 +30,40 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='chatbot.css') }}">
-
     <script defer src="{{ url_for('static', filename='app.js') }}"></script>
     <script defer src="{{ url_for('static', filename='chatbot.js') }}"></script>
 </head>
-
 <body>
     <a class="skip-link" href="#main-content">Skip to content</a>
 
     <div id="blogChatbot">
-        <button id="chatToggle" aria-label="Open chat assistant">💬</button>
+        <button id="chatToggle" aria-label="Open AI website assistant">💬</button>
         <div id="chatWindow">
-            <div class="chatHeader">
-                <div>
-                    <strong>JuicyStatControversy Assistant</strong>
-                    <p>Ask me about the blog articles</p>
-                </div>
-                <button id="chatClose" aria-label="Close chat">×</button>
-            </div>
-            <div id="chatMessages">
-                <div class="botMsg">✨ Welcome to JSTCon. I can help you find the latest story, explain a post, or guide you to all articles.</div>
-                <div class="chatPrompts">
-                    <button class="promptBtn" data-prompt="latest blog article">Latest blog article</button>
-                    <button class="promptBtn" data-prompt="Help me understand the blog titled ">Help me understand a blog</button>
-                    <button class="promptBtn" data-prompt="I need help finding posts">Find posts</button>
-                </div>
-            </div>
-            <div class="chatInputBox">
-                <input id="chatInput" type="text" placeholder="Ask about the blog..." />
-                <button id="chatSend">Send</button>
-            </div>
+            <div class="chatHeader"><div><strong>AI Web Assistant</strong><p>Ask about websites, SEO, CMS or chatbots</p></div><button id="chatClose" aria-label="Close chat">×</button></div>
+            <div id="chatMessages"><div class="botMsg">✨ Welcome. Ask about website development, site development, SEO strategy, CMS admin portals, backend systems, or AI chatbot development.</div></div>
+            <div class="chatInputBox"><input id="chatInput" type="text" placeholder="Ask about your website idea..." /><button id="chatSend">Send</button></div>
         </div>
     </div>
 
-    <div class="bg" aria-hidden="true">
-        <div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div><div class="grain"></div>
-    </div>
+    <div class="bg" aria-hidden="true"><div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div><div class="grain"></div></div>
 
     <header class="topbar glass">
         <div class="topbar-inner">
-            <a class="logo" href="{{ url_for('home') }}" aria-label="JuicyStatControversy home">
-                <span class="logo-dot"></span><span>JuicyStatControversy</span>
-            </a>
-            <div class="topbar-tags">
-                <span class="tag">Current Statistics</span>
-                <span class="tag ghost">Data Analysis</span>
-                <span class="tag ghost">Visual Dashboards</span>
-            </div>
+            <a class="logo" href="{{ url_for('home') }}" aria-label="Creative Tech Partner by Srijani home"><span class="logo-dot"></span><span>Creative Tech Partner</span></a>
+            <div class="topbar-tags"><span class="tag">AI Websites</span><span class="tag ghost">SEO</span><span class="tag ghost">CMS + Chatbots</span></div>
             <nav class="topbar-nav" aria-label="Main navigation">
                 <a class="navbtn" href="{{ url_for('home') }}">Home</a>
-                <a class="navbtn" href="{{ url_for('posts') }}">Posts</a>
+                <a class="navbtn" href="{{ url_for('services') }}">Services</a>
+                <a class="navbtn" href="{{ url_for('portfolio') }}">Portfolio</a>
+                <a class="navbtn" href="{{ url_for('posts') }}">Blog</a>
+                <a class="navbtn contact-nav" href="{{ whatsapp_url }}" target="_blank" rel="noopener">WhatsApp</a>
                 {% if current_user.is_authenticated %}
-                <a class="navbtn" href="{{ url_for('admin_dashboard') }}">Dashboard</a>
-                <a class="navbtn" href="{{ url_for('analytics_dashboard') }}">Analytics</a>
-                <a class="navbtn" href="{{ url_for('admin_subscribers') }}">Subscribers</a>
-                <a class="navbtn logout" href="{{ url_for('admin_logout') }}">Logout</a>
-                {% else %}
-                <a class="navbtn" href="{{ url_for('admin_login') }}">Admin</a>
-                {% endif %}
+                <a class="navbtn" href="{{ url_for('admin_dashboard') }}">Dashboard</a><a class="navbtn" href="{{ url_for('analytics_dashboard') }}">Analytics</a><a class="navbtn logout" href="{{ url_for('admin_logout') }}">Logout</a>
+                {% else %}<a class="navbtn" href="{{ url_for('admin_login') }}">Admin</a>{% endif %}
             </nav>
         </div>
     </header>
@@ -99,56 +71,25 @@
     <div class="shell">
         <aside class="sidebar glass">
             <div class="author" itemscope itemtype="https://schema.org/Person">
-                <div class="author-head">
-                    <img class="avatar" src="{{ url_for('static', filename='profile.jpg') }}" alt="Srijani Chakrabarti, data science writer" width="80" height="80" loading="lazy" itemprop="image">
-                    <div class="author-id">
-                        <div class="author-name" itemprop="name">Srijani Chakrabarti</div>
-                        <div class="author-sub">M.S, Data Science</div>
-                        <div class="author-sub">Macquarie University, Sydney, Australia</div>
-                    </div>
-                </div>
-                <div class="author-bio" itemprop="description">Weekly stat storytelling: charts, insights, research sources, and clean dashboard UI patterns.</div>
-                <div class="chips"><span class="chip">Analytics</span><span class="chip">Experiment design</span><span class="chip">Visualization</span></div>
+                <div class="author-head"><img class="avatar" src="{{ url_for('static', filename='profile.jpg') }}" alt="Srijani Chakrabarti website developer and SEO strategist" width="80" height="80" loading="lazy" itemprop="image"><div class="author-id"><div class="author-name" itemprop="name">Srijani Chakrabarti</div><div class="author-sub">AI Website Developer</div><div class="author-sub">SEO + Data Science</div></div></div>
+                <div class="author-bio" itemprop="description">I build aesthetic, SEO-ready websites with frontend, backend, CMS admin portals, analytics dashboards, AI chatbots, and automation.</div>
+                <div class="chips"><span class="chip">Website development</span><span class="chip">Site development</span><span class="chip">AI solutions</span></div>
                 <div class="divider"></div>
-                <div class="newsletter-box">
-                    <div class="mini-title">Newsletter</div>
-                    <p class="newsletter-text">Get new data stories by email.</p>
-                    <form method="post" action="{{ url_for('subscribe') }}" class="newsletter-form">
-                        <input type="text" name="name" placeholder="Name (optional)" maxlength="120">
-                        <input type="email" name="email" placeholder="Your email" required maxlength="255">
-                        <button class="btn small" type="submit">Subscribe</button>
-                    </form>
-                    <div class="newsletter-count">{{ active_subscribers_count }} subscribers</div>
-                </div>
+                <a class="btn full whatsapp-cta" href="{{ whatsapp_url }}" target="_blank" rel="noopener">Contact on WhatsApp</a>
+                <a class="mini-pill clickable" href="mailto:{{ contact_email }}">{{ contact_email }}</a>
                 <div class="divider"></div>
-                <div class="mini">
-                    <div class="mini-title">Explore</div>
-                    <div class="mini-row">
-                        <a href="{{ url_for('posts') }}" class="mini-pill clickable">All Posts</a>
-                        <a href="{{ url_for('sitemap_xml') }}" class="mini-pill clickable">Sitemap</a>
-                        {% if current_user.is_authenticated %}<a href="{{ url_for('analytics_dashboard') }}" class="mini-pill clickable">Analytics</a>{% endif %}
-                    </div>
-                </div>
+                <div class="newsletter-box"><div class="mini-title">Business Newsletter</div><p class="newsletter-text">Get SEO, AI and web growth notes.</p><form method="post" action="{{ url_for('subscribe') }}" class="newsletter-form"><input type="text" name="name" placeholder="Name (optional)" maxlength="120"><input type="email" name="email" placeholder="Your email" required maxlength="255"><button class="btn small" type="submit">Subscribe</button></form><div class="newsletter-count">{{ active_subscribers_count }} subscribers</div></div>
+                <div class="divider"></div>
+                <div class="mini"><div class="mini-title">Explore</div><div class="mini-row"><a href="{{ url_for('services') }}" class="mini-pill clickable">Services</a><a href="{{ url_for('portfolio') }}" class="mini-pill clickable">Portfolio</a><a href="{{ url_for('sitemap_xml') }}" class="mini-pill clickable">Sitemap</a></div></div>
             </div>
             {% block sidebar_extra %}{% endblock %}
         </aside>
-
         <main class="main" id="main-content">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-            <div class="flashwrap">
-                {% for category, msg in messages %}<div class="flash glass {{ category }}">{{ msg }}</div>{% endfor %}
-            </div>
-            {% endif %}
-            {% endwith %}
+            {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<div class="flashwrap">{% for category, msg in messages %}<div class="flash glass {{ category }}">{{ msg }}</div>{% endfor %}</div>{% endif %}{% endwith %}
             {% block content %}{% endblock %}
         </main>
     </div>
 
-    <footer class="footer">
-        <div class="footer-inner">
-            <span>Explore WHY • Argue with Stats • Think with Data</span>
-        </div>
-    </footer>
+    <footer class="footer"><div class="footer-inner"><span>Website development • Site development • SEO strategy • CMS • AI chatbot development</span></div></footer>
 </body>
 </html>

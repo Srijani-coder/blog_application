@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Portfolio | Creative Tech Partner by Srijani{% endblock %}
+{% block content %}
+<section class="page-hero glass"><span class="eyebrow">Portfolio</span><h1>Proof-led web development portfolio.</h1><p>This platform itself demonstrates a working Flask website with CMS, admin login, uploads, SEO, sitemap, analytics, newsletter and chatbot-ready structure.</p><a class="btn mega" href="{{ whatsapp_url }}" target="_blank" rel="noopener">Hire for your website</a></section>
+<section class="section"><div class="portfolio-grid">
+<article class="portfolio-card glass"><h3>CMS Blog Platform</h3><p>Admin can create posts, upload rich content, track analytics, manage subscribers and publish SEO-ready pages.</p><span>Flask · SQLAlchemy · SEO</span></article>
+<article class="portfolio-card glass"><h3>AI + SEO Service Website</h3><p>Agency landing page with keyword-rich meta tags, WhatsApp conversion button and service packaging.</p><span>Website development · Site development</span></article>
+<article class="portfolio-card glass"><h3>Data Storytelling Dashboards</h3><p>Blog-ready dashboard concepts for social, finance, safety and business analytics articles.</p><span>Python · Analytics · Visualization</span></article>
+<article class="portfolio-card glass"><h3>Chatbot Assistant</h3><p>Website assistant structure for explaining posts, answering service queries and supporting visitors.</p><span>AI chatbot development</span></article>
+</div></section>
+<section class="section"><div class="section-head"><h2>Latest proof from the CMS</h2></div><div class="grid">{% for p in posts %}<a class="card glass hover-card readable-post-card" href="{{ url_for('post_detail', slug=p.slug) }}"><h4>{{ p.title }}</h4>{% if p.image_path %}<img src="{{ p.image_path }}" class="thumb" alt="{{ p.title }} thumbnail" loading="lazy">{% endif %}<p>{{ p.content | plain | truncate(130, True, '...') }}</p></a>{% else %}<div class="card glass"><h4>Add client case studies</h4><p>Create posts from the admin dashboard and display them as portfolio case studies.</p></div>{% endfor %}</div></section>
+{% endblock %}

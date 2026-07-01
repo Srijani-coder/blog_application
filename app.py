@@ -3,7 +3,7 @@ import re
 import smtplib
 import secrets
 import json
-from urllib.parse import urljoin
+from urllib.parse import urljoin, quote_plus
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import date, datetime, timedelta
@@ -46,24 +46,32 @@ cloudinary.config(secure=True)
 # =========================
 # SEO HELPERS
 # =========================
-SITE_NAME = "JuicyStatControversy"
+SITE_NAME = "Creative Tech Partner by Srijani"
 SITE_DESCRIPTION = (
-    "Data stories, statistics, AI analysis, social issues, finance investigations, "
+    "Creative Tech Partner by Srijani builds AI-based website development, site development, "
+    "frontend and backend systems, CMS admin portals, SEO strategy, chatbot development, analytics dashboards, "
+    "and automation solutions for founders, local businesses, creators, and growing brands."
 )
 BASE_SEO_KEYWORDS = [
-    "data analysis blog",
-    "statistics blog",
-    "current statistics",
-    "data storytelling",
-    "AI applications",
-    "visual dashboards",
-    "crime data analysis",
-    "finance investigation",
-    "bullying prevention",
-    "social issue analysis",
-    "India statistics",
-    "research based articles",
-    "public data analysis",
+    "Website development",
+    "site development",
+    "AI based website development",
+    "website developer agency",
+    "web development agency India",
+    "frontend development",
+    "backend development",
+    "Flask website development",
+    "CMS website development",
+    "admin portal development",
+    "SEO strategy",
+    "technical SEO",
+    "AI chatbot development",
+    "business automation",
+    "analytics dashboard development",
+    "portfolio website development",
+    "small business website development",
+    "custom website design",
+    "AI solutions for business",
 ]
 KEYWORD_BANK = [
     "rape statistics", "violence against women", "forced marriage", "victim blaming",
@@ -204,6 +212,8 @@ def create_app():
     @app.context_processor
     def inject_global_template_vars():
         active_subscribers = Subscriber.query.filter_by(is_active=True).count()
+        whatsapp_number = os.getenv("WHATSAPP_NUMBER", "918101260237").replace("+", "").replace(" ", "")
+        whatsapp_text = quote_plus("Hi Srijani, I need help with website development, site development, SEO strategy, CMS, backend, or AI chatbot development.")
         return {
             "active_subscribers_count": active_subscribers,
             "site_name": SITE_NAME,
@@ -212,6 +222,8 @@ def create_app():
             "canonical_url": canonical_for_current_request(),
             "default_og_image": seo_image(None),
             "website_schema": build_website_schema(),
+            "whatsapp_url": f"https://wa.me/{whatsapp_number}?text={whatsapp_text}",
+            "contact_email": os.getenv("CONTACT_EMAIL", "srijani515@gmail.com"),
         }
 
     @app.template_filter("plain")
@@ -301,6 +313,35 @@ def create_app():
             og_image=seo_image(posts[0] if posts else None),
         )
 
+    @app.get("/services")
+    def services():
+        return render_template(
+            "services.html",
+            meta_description="AI based website development, site development, frontend, backend, CMS admin portal, SEO strategy, chatbot development and analytics dashboard services by Creative Tech Partner by Srijani.",
+            meta_keywords=", ".join(BASE_SEO_KEYWORDS + ["hire website developer", "AI web agency", "WhatsApp website development"]),
+            canonical_url=external_url("services"),
+        )
+
+    @app.get("/portfolio")
+    def portfolio():
+        posts = Post.query.order_by(Post.publish_date.desc()).limit(6).all()
+        return render_template(
+            "portfolio.html",
+            posts=posts,
+            meta_description="Portfolio for Creative Tech Partner by Srijani: AI websites, CMS blogs, SEO-ready Flask systems, dashboards, chatbot development and backend automation projects.",
+            meta_keywords=", ".join(BASE_SEO_KEYWORDS + ["developer portfolio", "Flask portfolio", "AI portfolio website"]),
+            canonical_url=external_url("portfolio"),
+        )
+
+    @app.get("/contact")
+    def contact():
+        return render_template(
+            "contact.html",
+            meta_description="Contact Creative Tech Partner by Srijani on WhatsApp for website development, site development, SEO strategy, CMS admin portals, backend systems and AI chatbot development.",
+            meta_keywords=", ".join(BASE_SEO_KEYWORDS + ["contact website developer", "WhatsApp web developer"]),
+            canonical_url=external_url("contact"),
+        )
+
     # =========================
     # SEO: SITEMAP + ROBOTS
     # =========================
@@ -322,6 +363,24 @@ def create_app():
                 "lastmod": today_iso,
                 "changefreq": "daily",
                 "priority": "0.9",
+            },
+            {
+                "loc": external_url("services"),
+                "lastmod": today_iso,
+                "changefreq": "weekly",
+                "priority": "0.9",
+            },
+            {
+                "loc": external_url("portfolio"),
+                "lastmod": today_iso,
+                "changefreq": "weekly",
+                "priority": "0.8",
+            },
+            {
+                "loc": external_url("contact"),
+                "lastmod": today_iso,
+                "changefreq": "monthly",
+                "priority": "0.8",
             },
         ]
 

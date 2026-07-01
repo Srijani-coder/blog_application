@@ -1,272 +1,59 @@
 {% extends "base.html" %}
-{% block title %}JuicyStatControversy | Data Stories, Statistics Dashboards and AI Analysis{% endblock %}
+{% block title %}Creative Tech Partner by Srijani | Website Development, Site Development, SEO & AI Solutions{% endblock %}
 
 {% block content %}
-
-<!-- ================= HERO ================= -->
-<section class="hero glass">
-    <h4> We believe in analytical thinking. Raise your true voice </h4>
-    <p>"In God we trust. All others must bring data." — W. Edwards Deming</p>
-
+<section class="agency-hero glass">
+    <div class="hero-copy">
+        <span class="eyebrow">AI-based solutions for real business tech problems</span>
+        <h1>Website development, site development, CMS, SEO strategy and AI chatbots built to bring traffic.</h1>
+        <p class="hero-lead">I turn your idea into a fast, elegant and searchable website with frontend, backend, admin portal, analytics, content management and automation.</p>
+        <div class="hero-actions">
+            <a class="btn mega" href="{{ whatsapp_url }}" target="_blank" rel="noopener">Start on WhatsApp</a>
+            <a class="btn ghost mega" href="{{ url_for('services') }}">View Services</a>
+        </div>
+        <div class="hero-proof"><span>Semrush SEO Certified</span><span>MSME Registered</span><span>Flask + SQL + AI</span></div>
+    </div>
+    <div class="hero-panel">
+        <div class="metric-card"><b>CMS</b><span>Admin portal to upload blogs, images, videos and events</span></div>
+        <div class="metric-card"><b>SEO</b><span>Meta tags, sitemap, keywords, structured content and Google-ready pages</span></div>
+        <div class="metric-card"><b>AI</b><span>Chatbot, recommendation, analytics and automation features</span></div>
+    </div>
 </section>
 
-<!-- ================= TODAY POST ================= -->
 <section class="section">
-    <div class="section-head">
-        <h2>Today’s post</h2>
-        {% if todays_post %}<span class="badge">LIVE</span>{% endif %}
+    <div class="section-head"><h2>What I build for clients</h2><span class="badge">High-conversion web systems</span></div>
+    <div class="service-grid">
+        <article class="service-card glass"><span>01</span><h3>Business Websites</h3><p>Aesthetic portfolio, company, agency, service and landing pages that make your offer clear and trustworthy.</p></article>
+        <article class="service-card glass"><span>02</span><h3>CMS + Admin Portal</h3><p>Upload posts, photos, videos, testimonials, certifications and events without touching code.</p></article>
+        <article class="service-card glass"><span>03</span><h3>Frontend + Backend</h3><p>Responsive UI, Flask backend, SQL database, authentication, dashboards, forms and deployment support.</p></article>
+        <article class="service-card glass"><span>04</span><h3>SEO Strategy</h3><p>Keyword-led structure for website development, site development, local search, technical SEO and content growth.</p></article>
+        <article class="service-card glass"><span>05</span><h3>AI Chatbot Development</h3><p>Customer support chatbot, blog assistant, lead capture flow and FAQ automation for your brand.</p></article>
+        <article class="service-card glass"><span>06</span><h3>Analytics Dashboards</h3><p>Track visitors, likes, shares, subscribers, popular products, profit-loss and business insights.</p></article>
     </div>
-
-    {% if todays_post %}
-    <article class="card glass frost-card readable-article-card">
-
-        <h1 class="post-title">{{ todays_post.title }}</h1>
-        <div class="meta">Published: {{ todays_post.publish_date }} · 👍 {{ todays_post.analytics.likes if todays_post.analytics else 0 }} likes</div>
-
-        {% if todays_post.image_path %}
-        <img class="media" src="{{ todays_post.image_path }}" alt="{{ todays_post.title }} article image" loading="eager" fetchpriority="high">
-        {% endif %}
-
-        <div class="content post-readable-content">{{ todays_post.content | safe }}</div>
-
-        <!-- ===== ACTIONS ===== -->
-        <div class="post-actions">
-            <button class="btn like-btn" onclick="likePost('{{ todays_post.slug }}', this)">💜 Like (<span>{{ todays_post.analytics.likes if todays_post.analytics else 0 }}</span>)</button>
-
-            <div class="share-dropdown">
-                <button class="btn ghost">Share ⬇</button>
-                <div class="share-menu">
-                    <a href="#" onclick="sharePost('{{ todays_post.slug }}','whatsapp')">WhatsApp</a>
-                    <a href="#" onclick="sharePost('{{ todays_post.slug }}','facebook')">Facebook</a>
-                    <a href="#" onclick="sharePost('{{ todays_post.slug }}','twitter')">Twitter</a>
-                    <a href="#" onclick="sharePost('{{ todays_post.slug }}','telegram')">Telegram</a>
-                    <a href="#" onclick="sharePost('{{ todays_post.slug }}','gmail')">Gmail</a>
-                </div>
-            </div>
-        </div>
-
-        <!-- ===== COMMENTS ===== -->
-        <div class="comments">
-            <div class="comments-title">
-                Comments ({{ todays_comment_count }})
-            </div>
-
-            <form method="post" action="{{ url_for('add_comment', slug=todays_post.slug) }}">
-                <input name="name" placeholder="Your name" required>
-                <textarea name="text" placeholder="Write comment..." required></textarea>
-                <button class="btn">Post</button>
-            </form>
-
-            {% for c in todays_comments %}
-            <div class="comment">
-                <b>{{ c.name }}</b>
-                <p>{{ c.text }}</p>
-            </div>
-            {% endfor %}
-        </div>
-
-    </article>
-    {% else %}
-    <div class="empty glass card">
-        No post today
-    </div>
-    {% endif %}
 </section>
 
-<!-- ================= RECENT GRID ================= -->
-<section class="section">
-    <div class="section-head">
-        <h2>Recent Posts</h2>
-    </div>
+<section class="section glass pitch-band">
+    <h2>Why this site is now a portfolio and advertisement engine</h2>
+    <p>Every page is shaped around search intent, trust, conversion and clear service packaging. The site keeps the blog system but now positions Creative Tech Partner by Srijani as a website developer agency offering AI-based solutions to technology problems.</p>
+    <a class="btn" href="{{ url_for('portfolio') }}">See portfolio proof</a>
+</section>
 
+<section class="section">
+    <div class="section-head"><h2>Recent articles and case studies</h2><a class="mini-pill clickable" href="{{ url_for('posts') }}">All posts</a></div>
     <div class="grid">
         {% for p in recent_posts %}
         <a class="card glass hover-card readable-post-card" href="{{ url_for('post_detail', slug=p.slug) }}">
-            <h4>{{ p.title }}</h4>
-
-            {% if p.image_path %}
-            <img src="{{ p.image_path }}" class="thumb" alt="{{ p.title }} thumbnail" loading="lazy">
-            {% endif %}
-
-            <p>{{ p.content | plain | truncate(150, True, '...') }}</p>
+            <h4>{{ p.title }}</h4>{% if p.image_path %}<img src="{{ p.image_path }}" class="thumb" alt="{{ p.title }} thumbnail" loading="lazy">{% endif %}<p>{{ p.content | plain | truncate(150, True, '...') }}</p>
         </a>
+        {% else %}
+        <div class="card glass"><h4>Portfolio-ready CMS</h4><p>Add your first article from the admin dashboard and it will appear here as proof of your content system.</p></div>
         {% endfor %}
     </div>
 </section>
 
-<!-- ================= HEXAGON BLOG STRIP ================= -->
-<section class="section">
-    <h2 class="section-head">Explore More</h2>
-
-    <div class="hex-scroll">
-
-        {% for p in recent_posts %}
-        <a href="{{ url_for('post_detail', slug=p.slug) }}" class="hex-card">
-
-            <div class="hex-inner">
-                <h4>{{ p.title[:30] }}</h4>
-                <span>Read →</span>
-            </div>
-
-        </a>
-        {% endfor %}
-
-    </div>
+<section class="section final-cta glass">
+    <h2>Need a website that looks premium and works like software?</h2>
+    <p>Contact me for website development, site development, SEO strategy, backend, CMS admin portal or AI chatbot development.</p>
+    <a class="btn mega whatsapp-cta" href="{{ whatsapp_url }}" target="_blank" rel="noopener">Contact on WhatsApp</a>
 </section>
-
-<!-- ================= STYLES ================= -->
-<style>
-
-    /* ===== Frost Glass ===== */
-    .frost-card {
-        background: rgba(255,255,255,0.06);
-        backdrop-filter: blur(20px);
-        border: 1px solid rgba(255,255,255,0.2);
-        border-radius: 20px;
-        padding: 20px;
-    }
-
-    /* ===== Buttons ===== */
-    .post-actions {
-        display: flex;
-        gap: 10px;
-        margin-top: 20px;
-    }
-
-    .like-btn {
-        background: linear-gradient(45deg, purple, violet);
-        color: white;
-    }
-
-    /* ===== Share Dropdown ===== */
-    .share-dropdown {
-        position: relative;
-    }
-
-    .share-menu {
-        display: none;
-        position: absolute;
-        background: #111;
-        padding: 10px;
-        border-radius: 10px;
-    }
-
-    .share-dropdown:hover .share-menu {
-        display: block;
-    }
-
-    .share-menu a {
-        display: block;
-        color: white;
-        padding: 5px;
-    }
-
-    /* ===== Grid ===== */
-    .grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px,1fr));
-        gap: 20px;
-    }
-
-    /* ===== Hover Cards ===== */
-    .hover-card:hover {
-        transform: translateY(-5px);
-    }
-
-    /* ===== HEXAGON CARDS ===== */
-    .hex-scroll {
-        display: flex;
-        gap: 20px;
-        overflow-x: auto;
-        padding: 20px;
-    }
-
-        /* Purple Ice Scrollbar */
-        .hex-scroll::-webkit-scrollbar {
-            height: 8px;
-        }
-
-        .hex-scroll::-webkit-scrollbar-thumb {
-            background: linear-gradient(90deg, purple, violet);
-            border-radius: 10px;
-        }
-
-    /* Hex Shape */
-    .hex-card {
-        width: 180px;
-        height: 200px;
-        background: linear-gradient(145deg, #6a00ff, #a855f7);
-        clip-path: polygon( 50% 0%, 90% 25%, 90% 75%, 50% 100%, 10% 75%, 10% 25% );
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        text-align: center;
-        transition: 0.3s;
-    }
-
-        .hex-card:hover {
-            transform: scale(1.05);
-        }
-
-    .hex-inner {
-        padding: 10px;
-    }
-
-    /* ===== Responsive ===== */
-    @media (max-width: 768px) {
-        .hex-card {
-            width: 140px;
-            height: 160px;
-        }
-    }
-</style>
-
-<!-- ================= JS ================= -->
-<script>
-
-function getDeviceIdHome() {
-    let id = localStorage.getItem("device_id");
-    if (!id) {
-        id = "dev-" + Math.random().toString(36).substring(2) + Date.now();
-        localStorage.setItem("device_id", id);
-    }
-    return id;
-}
-
-function likePost(slug, button){
-    fetch(`/track/like/${slug}`, {
-        method:'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({device_id:getDeviceIdHome()})
-    })
-    .then(r => r.json())
-    .then(data => {
-        const span = button ? button.querySelector('span') : null;
-        if (span) span.innerText = data.likes;
-    });
-}
-
-function sharePost(slug, platform){
-    fetch(`/track/share/${slug}`, {
-        method:'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({platform:platform, device_id:getDeviceIdHome()})
-    })
-
-    const url = window.location.href
-
-    if(platform==="whatsapp"){
-        window.open(`https://wa.me/?text=${url}`)
-    }
-    if(platform==="facebook"){
-        window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`)
-    }
-    if(platform==="twitter"){
-        window.open(`https://twitter.com/intent/tweet?url=${url}`)
-    }
-}
-
-</script>
-
 {% endblock %}
