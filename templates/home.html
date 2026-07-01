@@ -42,11 +42,11 @@
     <div class="section-head"><h2>Recent articles and case studies</h2><a class="mini-pill clickable" href="{{ url_for('posts') }}">All posts</a></div>
     <div class="grid">
         {% for p in recent_posts %}
-        <a class="card glass hover-card readable-post-card" href="{{ url_for('post_detail', slug=p.slug) }}">
+        <a class="card glass hover-card readable-post-card blog-mini-board" href="{{ url_for('post_detail', slug=p.slug) }}">
             <h4>{{ p.title }}</h4>{% if p.image_path %}<img src="{{ p.image_path }}" class="thumb" alt="{{ p.title }} thumbnail" loading="lazy">{% endif %}<p>{{ p.content | plain | truncate(150, True, '...') }}</p>
         </a>
         {% else %}
-        <div class="card glass"><h4>Portfolio-ready CMS</h4><p>Add your first article from the admin dashboard and it will appear here as proof of your content system.</p></div>
+        <div class="card glass readable-post-card blog-mini-board"><h4>Portfolio-ready CMS</h4><p>Add your first article from the admin dashboard and it will appear here as proof of your content system.</p></div>
         {% endfor %}
     </div>
 </section>

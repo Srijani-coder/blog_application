@@ -9,7 +9,7 @@
 
     <div class="posts-list">
         {% for post in posts %}
-        <article class="post-card readable-post-card" itemscope itemtype="https://schema.org/BlogPosting">
+        <article class="post-card readable-post-card blog-flex-board" itemscope itemtype="https://schema.org/BlogPosting">
             <h2 class="post-card-title" itemprop="headline"><a href="{{ url_for('post_detail', slug=post.slug) }}" itemprop="url">{{ post.title }}</a></h2>
             <div class="post-card-meta">Published: <time datetime="{{ post.publish_date }}" itemprop="datePublished">{{ post.publish_date }}</time> · {{ post.content|reading_time }} min read · 👍 {{ post.analytics.likes if post.analytics else 0 }} likes</div>
             {% if post.image_path %}
