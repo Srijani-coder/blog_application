@@ -2207,3 +2207,214 @@ p {
         box-shadow: 5px 5px 0 #000000 !important;
     }
 }
+
+/* =========================================================
+   FINAL POST READABILITY OVERRIDE - no shady/glass article view
+   Keeps the site purple outside, but every blog/post area is a
+   clean white + black flex board for mobile and desktop.
+   ========================================================= */
+body .post-detail-section,
+body .posts-index-section {
+    width: 100% !important;
+}
+
+body .post-detail-section .post-detail-card,
+body .post-detail-section .readable-article-card,
+body article.post-detail-card.readable-article-card.glass,
+body .posts-list .post-card,
+body .posts-list .blog-flex-board,
+body .grid .blog-mini-board {
+    background: #ffffff !important;
+    background-image: none !important;
+    color: #000000 !important;
+    border: 3px solid #000000 !important;
+    border-radius: 14px !important;
+    box-shadow: 6px 6px 0 #000000 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    filter: none !important;
+    opacity: 1 !important;
+    text-shadow: none !important;
+}
+
+body .post-detail-section .post-detail-card::before,
+body .post-detail-section .post-detail-card::after,
+body .posts-list .post-card::before,
+body .posts-list .post-card::after,
+body .grid .blog-mini-board::before,
+body .grid .blog-mini-board::after {
+    content: none !important;
+    display: none !important;
+}
+
+body .post-detail-section .post-detail-card {
+    max-width: 960px !important;
+    margin: 0 auto 32px auto !important;
+    padding: clamp(18px, 4vw, 42px) !important;
+    overflow: hidden !important;
+}
+
+body .post-detail-section .post-header,
+body .post-detail-section .post-readable-content,
+body .post-detail-section .content,
+body .post-detail-section figure,
+body .post-detail-section figcaption,
+body .post-detail-section .keyword-box,
+body .post-detail-section .related-box,
+body .post-detail-section .post-actions,
+body .post-detail-section .comments {
+    background: #ffffff !important;
+    color: #000000 !important;
+    text-shadow: none !important;
+    opacity: 1 !important;
+}
+
+body .post-detail-section .post-detail-title,
+body .post-detail-section h1,
+body .post-detail-section h2,
+body .post-detail-section h3,
+body .post-detail-section h4,
+body .post-detail-section .post-meta,
+body .post-detail-section .content,
+body .post-detail-section .content p,
+body .post-detail-section .content li,
+body .post-detail-section .content span,
+body .post-detail-section .content strong,
+body .post-detail-section .content em,
+body .post-detail-section .content div,
+body .post-detail-section .content figcaption,
+body .post-detail-section .comments * {
+    color: #000000 !important;
+    text-shadow: none !important;
+    opacity: 1 !important;
+}
+
+body .post-detail-section .post-readable-content,
+body .post-detail-section .content {
+    border-top: 3px solid #000000 !important;
+    padding-top: 24px !important;
+    margin-top: 22px !important;
+    font-size: clamp(16px, 1.8vw, 18px) !important;
+    line-height: 1.82 !important;
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
+}
+
+body .post-detail-section .content * {
+    text-shadow: none !important;
+    box-shadow: none !important;
+}
+
+body .post-detail-section .content p,
+body .post-detail-section .content div {
+    max-width: 100% !important;
+}
+
+body .post-detail-section img,
+body .post-detail-section .media,
+body .posts-list .post-card-img,
+body .grid .thumb {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    border: 3px solid #000000 !important;
+    border-radius: 10px !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    object-fit: contain !important;
+}
+
+body .post-detail-section figure {
+    margin: 18px 0 24px !important;
+    padding: 0 !important;
+    border: 0 !important;
+}
+
+body .post-detail-section figcaption {
+    margin-top: 8px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    text-align: center !important;
+}
+
+body .posts-list .post-card,
+body .posts-list .blog-flex-board {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    width: 100% !important;
+    max-width: 980px !important;
+    margin: 0 auto !important;
+    padding: clamp(18px, 3vw, 30px) !important;
+}
+
+body .posts-list .post-card-title,
+body .posts-list .post-card-title a,
+body .grid .blog-mini-board h4,
+body .grid .blog-mini-board h4 a {
+    color: #000000 !important;
+    text-decoration: none !important;
+    font-weight: 900 !important;
+}
+
+body .posts-list .post-card-meta,
+body .posts-list .post-card-excerpt,
+body .grid .blog-mini-board p {
+    color: #111111 !important;
+    opacity: 1 !important;
+}
+
+body .posts-list .read-more-link,
+body .post-detail-section .btn,
+body .post-detail-section button.btn {
+    background: #000000 !important;
+    color: #ffffff !important;
+    border: 2px solid #000000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+
+body .posts-list .read-more-link:hover,
+body .post-detail-section .btn:hover,
+body .post-detail-section button.btn:hover {
+    background: #ffffff !important;
+    color: #000000 !important;
+}
+
+body .post-detail-section input,
+body .post-detail-section textarea {
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: 2px solid #000000 !important;
+}
+
+@media (max-width: 768px) {
+    body .main {
+        padding: 6px !important;
+    }
+
+    body .post-detail-section .post-detail-card,
+    body .posts-list .post-card,
+    body .grid .blog-mini-board {
+        width: calc(100vw - 24px) !important;
+        max-width: calc(100vw - 24px) !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        padding: 14px !important;
+        border-width: 2px !important;
+        box-shadow: 4px 4px 0 #000000 !important;
+    }
+
+    body .post-detail-section .post-detail-title,
+    body .post-detail-section h1 {
+        font-size: 24px !important;
+        line-height: 1.18 !important;
+    }
+
+    body .post-detail-section .content,
+    body .post-detail-section .content p {
+        font-size: 15.5px !important;
+        line-height: 1.78 !important;
+    }
+}
